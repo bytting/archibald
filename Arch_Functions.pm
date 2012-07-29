@@ -21,7 +21,7 @@ sub set_keymap
 
 sub enable_interface
 {
-    my ($iface, $op) = @_;    
+    my $iface = shift;    
     
     `ip link set $iface up > /dev/null 2>&1`;    
     
@@ -35,7 +35,7 @@ sub enable_interface
 
 sub disable_interface
 {
-    my ($iface, $op) = @_;    
+    my $iface = shift;    
     
     `ip link set $iface down > /dev/null 2>&1`;    
     
