@@ -3,11 +3,10 @@
 
 use strict;
 use warnings;
-#use File::Temp qw( :POSIX );
+use IO::Handle;
 use Arch_UI;
 
-#my $fh = tmpfile();
-#open STDERR, ">&fh";
-open STDERR, ">stderr" or die $!;
+open STDERR, ">stderr.log" or die $!;
+STDERR->autoflush(1);
 
 Arch_UI::run();

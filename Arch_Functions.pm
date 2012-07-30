@@ -9,27 +9,27 @@ sub set_keymap
 {
     my $km = shift;
     
-    system("loadkeys $km > /dev/null 2>&1");
+    `loadkeys $km > /dev/null`;
     
-    if($?) {			
-        return ($?, 'Unable to load keymap ' . $km);            
+    if($?) {        
+        return ($?, "Unable to load keymap $km");            
     }
     else {
-        return ($?, 'Selected keymap ' . $km);            
+        return ($?, "Selected keymap $km");            
     }
 }
 
 sub enable_interface
 {
     my $iface = shift;    
-    
-    `ip link set $iface up > /dev/null 2>&1`;    
+        
+    `ip link set $iface up > /dev/null`;
     
     if($?) {			
-        return ($?, 'Enabling interface ' . $iface . ' failed');            
+        return ($?, "Enabling interface $iface failed");            
     }
     else {
-        return ($?, 'Interface ' . $iface . ' enabled successfully');            
+        return ($?, "Interface $iface enabled successfully");            
     }
 }
 
@@ -37,13 +37,13 @@ sub disable_interface
 {
     my $iface = shift;    
     
-    `ip link set $iface down > /dev/null 2>&1`;    
+    `ip link set $iface down > /dev/null`;    
     
     if($?) {			
-        return ($?, 'Disabling interface ' . $iface . ' failed');            
+        return ($?, "Disabling interface $iface failed");            
     }
     else {
-        return ($?, 'Interface ' . $iface . ' disabled successfully');            
+        return ($?, "Interface $iface disabled successfully");            
     }
 }
 1;
