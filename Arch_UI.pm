@@ -1,14 +1,12 @@
 #!/usr/bin/perl -w
 #=======================================================================
+
 package Arch_UI;
 
 use strict;
 use warnings;
-use File::Basename;
 use Curses::UI;
-use Arch_Common;
 use Arch_Callbacks;
-use Arch_Functions;
 
 my $cui;
 my %win = ();
@@ -37,11 +35,7 @@ sub run()
         -y => 1,
         -vertical => 1,        	
         -buttons  => [
-            { 
-                -label => 'Help',						
-                -value => 'help',
-                -onpress => sub { $win{'Help'}->focus }
-            },{		
+            { 	
                 -label => 'Configure keymap',
                 -value => 'configure_keymap',
                 -onpress => sub { $win{'Configure_Keymap'}->focus }
@@ -65,7 +59,11 @@ sub run()
                 -label => 'Configure the new system',              
                 -value => 'configure_the_new_system',
                 -onpress => sub { $win{'Configure_System'}->focus }
-            },{ 
+            },{
+               -label => 'Log',						
+                -value => 'log',
+                -onpress => sub { $win{'Log'}->focus }
+            },{	
                 -label => 'Reboot',              
                 -value => 'reboot_system',
                 -onpress => sub { $win{'Reboot_System'}->focus }            
@@ -73,32 +71,6 @@ sub run()
                 -label => 'Quit',
                 -value => 'quit',
                 -onpress => sub { $win{'Quit'}->focus }
-            }
-        ]
-    );    
-    
-    #=======================================================================
-    # UI - Help
-    #=======================================================================
-    
-    $win{'Help'} = $cui->add('Window_Help', 'Window',
-        -title => 'Archibald: Showing last error messages', %args, -bfg => 'red', -tfg => 'green',
-        -onFocus => \&Arch_Callbacks::Help_Focus);
-    
-    $win{'Help'}->add(
-        'info', 'Label',
-        -y => 1, -width => -1, -height => 6,
-        -bold => 1,        
-    );
-    
-    $win{'Help'}->add(
-        undef, 'Buttonbox',		
-        -y => -1,
-        -buttons  => [
-            { 
-                -label => 'Return to main menu',
-                -value => 'return_to_main_menu',
-                -onpress => sub { $win{'Menu_Main'}->focus }
             }
         ]
     );    
@@ -125,7 +97,7 @@ sub run()
             { 
                 -label => 'Browse keymaps',
                 -value => 'browse_keymaps',
-                -onpress => \&handler_configure_keymap
+                -onpress => \&Arch_Callbacks::Configure_Keymap_Browse
             }
         ]
     );    
@@ -141,31 +113,6 @@ sub run()
             }
         ]
     );
-    
-    sub handler_configure_keymap()
-    {
-        my $this = shift;
-        my $mask = [[ '\.map.gz$', 'Keymap files (*.map.gz)' ]];
-        my $file = $cui->filebrowser(
-            -path => $Arch_Common::keymap_directory, 
-            -show_hidden => 0, 
-            -editfilename => 0, 
-            -mask => $mask,
-            -title => "Select a keymap file", -bfg => "red", -tfg => "green");	
-        
-        my $info = $this->parent->getobj('info');
-        
-        if(!defined($file)) {
-            $info->text("No keymap selected");
-            return;
-        }        
-                
-        my ($keymap, $dir, $ext) = fileparse($file, '\..*');		
-        
-        my ($err, $msg) = Arch_Functions::set_keymap($keymap);
-        
-        $info->text($msg);                
-    }    
     
     #=======================================================================
     # UI - Configure network
@@ -195,36 +142,14 @@ sub run()
             { 
                 -label => 'Enable',
                 -value => 'enable',
-                -onpress => \&handler_enable_interface
+                -onpress => \&Arch_Callbacks::Configure_Network_UpDown
             },{
                 -label => 'Disable',
                 -value => 'disable',
-                -onpress => \&handler_disable_interface
+                -onpress => \&Arch_Callbacks::Configure_Network_UpDown
             }
         ]
     );
-    
-    sub handler_enable_interface()
-    {
-        my $this = shift;
-        my $info = $this->parent->getobj('info');        
-        my $iflist = $this->parent->getobj('interfacelist');        
-        my $iface = $iflist->get();
-        $iface =~ /(.*)\s/;
-        my ($err, $msg) = Arch_Functions::enable_interface($1);        
-        $info->text($msg);                
-    }
-    
-    sub handler_disable_interface()
-    {
-        my $this = shift;
-        my $info = $this->parent->getobj('info');        
-        my $iflist = $this->parent->getobj('interfacelist');        
-        my $iface = $iflist->get();
-        $iface =~ /(.*)\s/;
-        my ($err, $msg) = Arch_Functions::disable_interface($1);
-        $info->text($msg);                
-    }
     
     $win{'Configure_Network'}->add(
         undef, 'Buttonbox',	
@@ -343,6 +268,36 @@ sub run()
     );
     
     #=======================================================================
+    # UI - Log
+    #=======================================================================
+    
+    $win{'Log'} = $cui->add('Window_Log', 'Window',
+        -title => 'Archibald: Showing recent error messages', %args, -bfg => 'red', -tfg => 'green',
+        -onFocus => \&Arch_Callbacks::Log_Focus);
+    
+    $win{'Log'}->add(
+        'editor', 'TextViewer',
+        -y => 1, -width => -1, -height => 12,
+        -bold => 1,
+        -singleline => 0,
+        -wrapping => 1,
+        -border => 1,
+        -vscrollbar => 'right'
+    );
+    
+    $win{'Log'}->add(
+        undef, 'Buttonbox',		
+        -y => -1,
+        -buttons  => [
+            { 
+                -label => 'Return to main menu',
+                -value => 'return_to_main_menu',
+                -onpress => sub { $win{'Menu_Main'}->focus }
+            }
+        ]
+    );
+    
+    #=======================================================================
     # UI - Reboot system
     #=======================================================================
     
@@ -414,4 +369,6 @@ sub run()
     $win{'Menu_Main'}->focus;
     $cui->mainloop;
 }
+
+#=======================================================================
 1;

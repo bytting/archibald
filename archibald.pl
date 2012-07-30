@@ -10,3 +10,5 @@ open STDERR, ">stderr.log" or die $!;
 STDERR->autoflush(1);
 
 Arch_UI::run();
+
+#=======================================================================
