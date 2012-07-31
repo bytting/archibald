@@ -77,7 +77,7 @@ sub run()
     $win{'Configure_Network'}->add('interfacelist', 'Radiobuttonbox', -x => 1, -y => 5, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1);
     
     $win{'Configure_Network'}->add(undef, 'Buttonbox', -y => 12,
-        -buttons  => [
+        -buttons => [
             { -label => 'Enable', -value => 'enable', -onpress => \&Arch_Callbacks::Configure_Network_UpDown },
             { -label => 'Disable', -value => 'disable', -onpress => \&Arch_Callbacks::Configure_Network_UpDown }
         ]
@@ -92,7 +92,7 @@ sub run()
     $win{'Prep_Hard_Drive'} = $cui->add('Window_Prep_Hard_Drive', 'Window', -title => 'Archibald: Prepare hard drive', %win_args,
         -onFocus => \&Arch_Callbacks::Prep_Hard_Drive_Focus);
     
-    $win{'Prep_Hard_Drive'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
+    $win{'Prep_Hard_Drive'}->add('devmenu', 'Listbox', -x => 1, -y => 3, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1);
     
     add_nav_menu($win{'Prep_Hard_Drive'}, 'Return to main menu', $win{'Menu_Main'});
     

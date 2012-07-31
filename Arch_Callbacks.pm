@@ -101,9 +101,24 @@ sub Configure_Network_UpDown {
 # Callbacks - Prepare hard drive
 #=======================================================================
 
-sub Prep_Hard_Drive_Focus {
-    #my $this = shift;
-    #my $info = $this->getobj('info');    
+sub Prep_Hard_Drive_Focus {    
+    my $win = shift;    
+    my $dm = $win->getobj('devmenu');
+    
+    my (@values, %labels);    
+    my @ipc = `cat /proc/partitions`;    
+    
+    for (@ipc) {
+        unless (/^\s*\d/) { next }
+        $_ = (split(/\s/, $_))[-1];
+        unless (/\d$/) {
+            push @values, "$_";
+            $labels{$1} = "$_";
+        }
+    }
+        
+    $dm->values(\@values);
+    $dm->labels(\%labels);    
 }
 
 #=======================================================================
