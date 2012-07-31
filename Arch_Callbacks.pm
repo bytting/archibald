@@ -54,29 +54,28 @@ sub Configure_Keymap_Browse {
 #=======================================================================
 
 sub Configure_Network_Focus {
-    my $this = shift;
-    my $info = $this->getobj('info');    
-    $info->text('Configure network...');
+    my $win = shift;
+    my $info = $win->getobj('info');            
+    my $iflist = $win->getobj('interfacelist');
     
-    my $iflist = $this->getobj('interfacelist');
-
-    my @values;
-    my %labels;
-    my $cnt = 0;
-    my @ipc = `ip addr`;
+    my (@values, %labels);    
+    my @ipc = `ip addr`;    
+    
     for (@ipc) {
-        if ( /^(\d+):\s*(\w+).*state\s(\w+)/ ) {        
-            my ($nr, $if, $state) = ($1, $2, $3);
+        if ( /^\d+:\s*(\w+).*state\s(\w+)/ ) {        
+            my ($if, $state) = ($1, $2);
             if($if eq 'lo') {
                 next;
             }
             push @values, "$if ($state)";
-            $labels{++$cnt} = "$if ($state)";
+            $labels{$if} = "$if ($state)";
         }
     }
         
     $iflist->values(\@values);
-    $iflist->labels(\%labels);        
+    $iflist->labels(\%labels);
+    
+    $info->text('Configure network...');
 }
 
 sub Configure_Network_UpDown {
@@ -85,6 +84,7 @@ sub Configure_Network_UpDown {
     my $info = $win->getobj('info');        
     my $iflist = $win->getobj('interfacelist');        
     my $iface = $iflist->get();
+    
     $iface =~ /(.*)\s/;
     $iface = $1;    
     my ($op, $val) = (undef, $bbox->get());        
@@ -138,8 +138,8 @@ sub Configure_System_Focus {
 #=======================================================================
 
 sub Log_Focus {
-    my $this = shift;
-    my $info = $this->getobj('editor');    
+    my $win = shift;
+    my $info = $win->getobj('editor');    
     open FILE, "< stderr.log";
     my @content = <FILE>; close FILE;    
     $info->text(join('', reverse(@content)));
@@ -159,8 +159,8 @@ sub Reboot_System_Focus {
 #=======================================================================
 
 sub Quit_Focus {
-    my $this = shift;
-    my $info = $this->getobj('info');
+    my $win = shift;
+    my $info = $win->getobj('info');
     $info->text('Are you sure?');
 }
 
