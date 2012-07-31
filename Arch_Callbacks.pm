@@ -109,11 +109,11 @@ sub Prep_Hard_Drive_Focus {
     my @ipc = `cat /proc/partitions`;    
     
     for (@ipc) {
-        unless (/^\s*\d/) { next }
-        $_ = (split(/\s/, $_))[-1];
+        next unless /^\s*\d/;
+        $_ = (split(/\s/, $_))[-1];        
         unless (/\d$/) {
             push @values, "$_";
-            $labels{$1} = "$_";
+            $labels{$_} = "$_";
         }
     }
         

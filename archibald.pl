@@ -3,6 +3,7 @@
 
 use strict;
 use warnings;
+use strict 'subs';
 use IO::Handle;
 use Arch_UI;
 
