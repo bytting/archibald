@@ -36,15 +36,16 @@ sub run()
     
     $win{"Menu_Main"}->add('mainmenu', 'Buttonbox', -y => 1, -vertical => 1,
         -buttons  => [
-            { -label => 'Configure keymap',             -value => 'configure_keymap',           -onpress => sub { $win{'Configure_Keymap'}->focus } },
-            { -label => 'Configure network',            -value => 'configure_network',          -onpress => sub { $win{'Configure_Network'}->focus } },
-            { -label => 'Prepare hard drive',           -value => 'prepare_hard_drive',         -onpress => sub { $win{'Prep_Hard_Drive'}->focus } },
-            { -label => 'Select installation mirror',   -value => 'select_installation_mirror', -onpress => sub { $win{'Select_Mirror'}->focus } },
-            { -label => 'Install base system',          -value => 'install_base_system',        -onpress => sub { $win{'Install_System'}->focus } },
-            { -label => 'Configure the new system',     -value => 'configure_the_new_system',   -onpress => sub { $win{'Configure_System'}->focus } },
-            { -label => 'Log',                          -value => 'log',                        -onpress => sub { $win{'Log'}->focus } },
-            { -label => 'Reboot',                       -value => 'reboot_system',              -onpress => sub { $win{'Reboot_System'}->focus } },
-            { -label => 'Quit',                         -value => 'quit',                       -onpress => sub { $win{'Quit'}->focus } }
+            { -label => 'Configure keymap', -value => 'configure_keymap on live system', -onpress => sub { $win{'Configure_Keymap'}->focus } },
+            { -label => 'Configure network', -value => 'configure_network on live system', -onpress => sub { $win{'Configure_Network'}->focus } },
+            { -label => 'Prepare hard drive', -value => 'prepare_hard_drive', -onpress => sub { $win{'Prep_Hard_Drive'}->focus } },
+            { -label => 'Select mount points and filesystem', -value => 'select_mount_points', -onpress => sub { $win{'Select_Mount_Points'}->focus } },
+            { -label => 'Select installation mirror', -value => 'select_installation_mirror', -onpress => sub { $win{'Select_Mirror'}->focus } },
+            { -label => 'Install base system', -value => 'install_base_system', -onpress => sub { $win{'Install_System'}->focus } },
+            { -label => 'Configure the new system', -value => 'configure_the_new_system', -onpress => sub { $win{'Configure_System'}->focus } },
+            { -label => 'Log', -value => 'log', -onpress => sub { $win{'Log'}->focus } },
+            { -label => 'Reboot', -value => 'reboot_system', -onpress => sub { $win{'Reboot_System'}->focus } },
+            { -label => 'Quit', -value => 'quit', -onpress => sub { $win{'Quit'}->focus } }
         ]
     );    
     
@@ -92,9 +93,24 @@ sub run()
     $win{'Prep_Hard_Drive'} = $cui->add('Window_Prep_Hard_Drive', 'Window', -title => 'Archibald: Prepare hard drive', %win_args,
         -onFocus => \&Arch_Callbacks::Prep_Hard_Drive_Focus);
     
-    $win{'Prep_Hard_Drive'}->add('devmenu', 'Listbox', -x => 1, -y => 3, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1);
+    $win{'Prep_Hard_Drive'}->add('devmenu', 'Radiobuttonbox', -x => 1, -y => 3, -width => -1, -height => 4, -vscrollbar => 'right', -border => 1);
+    
+    $win{'Prep_Hard_Drive'}->add(undef, 'Buttonbox', -y => 12,
+        -buttons => [
+            { -label => 'Format with cfdisk', -value => 'cfdisk', -onpress => \&Arch_Callbacks::Prep_Hard_Drive_Cfdisk },            
+        ]
+    );
     
     add_nav_menu($win{'Prep_Hard_Drive'}, 'Return to main menu', $win{'Menu_Main'});
+    
+    #=======================================================================
+    # UI - Select mount points and filesystem
+    #=======================================================================
+    
+    $win{'Select_Mount_Points'} = $cui->add('Window_Select_Mount_Points', 'Window', -title => 'Archibald: Select mount points and filesystem', %win_args,
+        -onFocus => \&Arch_Callbacks::Select_Mount_Points_Focus);
+    
+    add_nav_menu($win{'Select_Mount_Points'}, 'Return to main menu', $win{'Menu_Main'});
     
     #=======================================================================
     # UI - Select installation mirror

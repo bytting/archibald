@@ -105,13 +105,11 @@ sub Prep_Hard_Drive_Focus {
     my $win = shift;    
     my $dm = $win->getobj('devmenu');
     
-    my (@values, %labels);    
-    my @ipc = `cat /proc/partitions`;    
+    my (@values, %labels);
+    my @ipc = `fdisk -l`;    
     
     for (@ipc) {
-        next unless /^\s*\d/;
-        $_ = (split(/\s/, $_))[-1];        
-        unless (/\d$/) {
+        if (/^Disk\s+\/dev/) {        
             push @values, "$_";
             $labels{$_} = "$_";
         }
@@ -119,6 +117,27 @@ sub Prep_Hard_Drive_Focus {
         
     $dm->values(\@values);
     $dm->labels(\%labels);    
+}
+
+sub Prep_Hard_Drive_Cfdisk {
+    my $bbox = shift;
+    my $cui = $bbox->parent->parent;
+    my $dm = $bbox->parent->getobj('devmenu');
+    my $disk = (split(/\s/, $dm->get()))[1];
+    $disk =~ s/:$//;    
+    
+    $cui->leave_curses();    
+    system("cfdisk $disk");    
+    $cui->reset_curses();
+}
+
+#=======================================================================
+# Callbacks - Select mount points and filesystem
+#=======================================================================
+
+sub Select_Mount_Points_Focus {
+    #my $this = shift;
+    #my $info = $this->getobj('info');    
 }
 
 #=======================================================================

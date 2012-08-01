@@ -3,9 +3,10 @@
 
 use strict;
 use warnings;
-use strict 'subs';
 use IO::Handle;
 use Arch_UI;
+
+use strict 'subs';
 
 open STDERR, ">stderr.log" or die $!;
 STDERR->autoflush(1);
