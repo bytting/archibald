@@ -24,15 +24,19 @@ sub Configure_Keymap_Focus {
     my $win = shift;
     my $info = $win->getobj('info');
     my $kmlist = $win->getobj('keymaplist');    
-    $info->text('Select a keymap...');
+        
+    my ($err, @keymaps) = Arch_Functions::get_files_from($Arch_Common::keymap_directory, $Arch_Common::keymap_extension);
+    if($err) {
+        $info->text('No keymaps found');
+        return;
+    }
     
-    my @kmlist;
-    my @keymaps = Arch_Functions::get_files_from($Arch_Common::keymap_directory, $Arch_Common::keymap_extension);
     foreach (@keymaps) {
         s/^$Arch_Common::keymap_directory//;
         s/$Arch_Common::keymap_extension$//;
     }
-    $kmlist->values(\@keymaps);    
+    $kmlist->values(\@keymaps);
+    $info->text('Select a keymap...');
 }
 
 sub Configure_Keymap_Apply {
@@ -208,12 +212,12 @@ sub Select_Mount_Points_SelectFS {
 sub Select_Mount_Points_Apply {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $devmenu = $win->getobj('devmenu');
-    my $partmenu = $win->getobj('partmenu');
-    my $mountmenu = $win->getobj('mountmenu');
-    my $fsmenu = $win->getobj('fsmenu');
-    
-    my $mountpoints = $win->getobj('mountpoints');
+    my ($devmenu, $partmenu, $mountmenu, $fsmenu, $mountpoints) = (
+        $win->getobj('devmenu'),
+        $win->getobj('partmenu'),
+        $win->getobj('mountmenu'),
+        $win->getobj('fsmenu'),
+        $win->getobj('mountpoints'));                
         
     my $entry = $partmenu->get() . ':' . $mountmenu->get() . ':' . $fsmenu->get();
     push @Arch_Common::partition_table, $entry;
@@ -225,7 +229,7 @@ sub Select_Mount_Points_Apply {
 }
 
 sub Select_Mount_Points_Write {
-    # Write Arch_Common::partition_table to disk...
+    # Write Arch_Common::partition_table to disk and empty it...
 }
 
 sub Select_Mount_Points_Clear {
@@ -245,8 +249,69 @@ sub Select_Mount_Points_Clear {
 #=======================================================================
 
 sub Select_Mirror_Focus {
-    #my $this = shift;
-    #my $info = $this->getobj('info');    
+    my $win = shift;
+    my $info = $win->getobj('info');
+    my $mlist = $win->getobj('mirrorlist');
+    my ($last, $url);
+    unless(-e '/etc/pacman.d/mirrorlist') {
+        $info->text('The file mirrorlist was not found');
+        return;
+    }
+    else {
+        $info->text('Select the mirrors you want to enable');
+    }
+    open FILE, '/etc/pacman.d/mirrorlist';
+    my @content = <FILE>;
+    close FILE;
+    my %mirrors;
+    foreach (@content) {
+        if(/^\s*#*\s*Server\s*=\s*(.*)/) {
+            $url = $1;
+            $last =~ s/^[\s#]*//;
+            $mirrors{$url} = $last;
+        }
+        $last = $_;
+    }
+    
+    $mlist->values(map { "$_ - $mirrors{$_}" } keys %mirrors);    
+}
+
+sub Select_Mirror_Apply {
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');    
+    my $lbox = $win->getobj('mirrorlist');
+    my ($url, $found);
+    my @selected = $lbox->get();
+        
+    open (my $in, "<", '/etc/pacman.d/mirrorlist');
+    open (my $out, ">", '/etc/pacman.d/mirrorlist.tmp');    
+
+    while(my $line = <$in>) {        
+        if ($line =~ /^\s*$/) {
+            print $out $line;
+            next;
+        }
+        $found = 0;
+        foreach(@selected) {
+            $_ =~ s/\s.*$//;
+            if(index($line, $_) != -1) {
+                $found = 1;
+                $line =~ s/^[#\s]+//;                
+                print $out $line;
+            }
+        }
+        
+        if(!$found) {
+            if($line !~ /^#/) { print $out "#$line"; }
+            else { print $out $line; }
+        }        
+    }
+    
+    close $in;
+    close $out;
+    
+    rename '/etc/pacman.d/mirrorlist.tmp', '/etc/pacman.d/mirrorlist';
 }
 
 #=======================================================================

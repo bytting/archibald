@@ -31,15 +31,15 @@ sub run()
     
     $win{"Menu_Main"}->add('mainmenu', 'Buttonbox', -y => 1, -vertical => 1,
         -buttons  => [
-            { -label => 'Configure keymap', -value => 'configure_keymap on live system', -onpress => sub { $win{'Configure_Keymap'}->focus } },
-            { -label => 'Configure network', -value => 'configure_network on live system', -onpress => sub { $win{'Configure_Network'}->focus } },
+            { -label => 'Configure keymap for the live system', -value => 'configure_keymap on live system', -onpress => sub { $win{'Configure_Keymap'}->focus } },
+            { -label => 'Configure network for the live system', -value => 'configure_network on live system', -onpress => sub { $win{'Configure_Network'}->focus } },
             { -label => 'Prepare hard drive', -value => 'prepare_hard_drive', -onpress => sub { $win{'Prep_Hard_Drive'}->focus } },
-            { -label => 'Select mount points and filesystem', -value => 'select_mount_points', -onpress => sub { $win{'Select_Mount_Points'}->focus } },
+            { -label => 'Select mount points and filesystem (Required)', -value => 'select_mount_points', -onpress => sub { $win{'Select_Mount_Points'}->focus } },
             { -label => 'Select installation mirror', -value => 'select_installation_mirror', -onpress => sub { $win{'Select_Mirror'}->focus } },
-            { -label => 'Install base system', -value => 'install_base_system', -onpress => sub { $win{'Install_System'}->focus } },
-            { -label => 'Configure the new system', -value => 'configure_the_new_system', -onpress => sub { $win{'Configure_System'}->focus } },
-            { -label => 'Log', -value => 'log', -onpress => sub { $win{'Log'}->focus } },
-            { -label => 'Reboot', -value => 'reboot_system', -onpress => sub { $win{'Reboot_System'}->focus } },
+            { -label => 'Install base system (Required)', -value => 'install_base_system', -onpress => sub { $win{'Install_System'}->focus } },
+            { -label => 'Configure the new system (Required)', -value => 'configure_the_new_system', -onpress => sub { $win{'Configure_System'}->focus } },
+            { -label => 'Show error log', -value => 'log', -onpress => sub { $win{'Log'}->focus } },
+            { -label => 'Reboot into installed system', -value => 'reboot_system', -onpress => sub { $win{'Reboot_System'}->focus } },
             { -label => 'Quit', -value => 'quit', -onpress => sub { $win{'Quit'}->focus } }
         ]
     );    
@@ -141,10 +141,13 @@ sub run()
     $win{'Select_Mirror'} = $cui->add('Window_Select_Mirror', 'Window', -title => 'Archibald: Select installation mirror', %win_args,
         -onFocus => \&Arch_Callbacks::Select_Mirror_Focus);
     
-    $win{'Select_Mirror'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
+    $win{'Select_Mirror'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);
+    
+    $win{'Select_Mirror'}->add('mirrorlist', 'Listbox', -x => 1, -y => 5, -width => -1, -height => 14, -vscrollbar => 'right', -border => 1, -multi => 1);
     
     $win{'Select_Mirror'}->add(undef, 'Buttonbox', -y => -1,
-        -buttons => [            
+        -buttons => [
+            { -label => 'Apply selection', -value => 'apply', -onpress => \&Arch_Callbacks::Select_Mirror_Apply },
             { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
         ]
     );    
