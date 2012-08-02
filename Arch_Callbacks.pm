@@ -7,6 +7,7 @@ use strict;
 use warnings;
 use File::Basename;
 use Arch_Common;
+use Arch_Functions;
 
 #=======================================================================
 # Callbacks - Main menu
@@ -20,33 +21,34 @@ sub Menu_Main_Focus {
 #=======================================================================
 
 sub Configure_Keymap_Focus {
-    my $this = shift;
-    my $info = $this->getobj('info');
+    my $win = shift;
+    my $info = $win->getobj('info');
+    my $kmlist = $win->getobj('keymaplist');    
     $info->text('Select a keymap...');
+    
+    my @kmlist;
+    my @keymaps = Arch_Functions::get_files_from($Arch_Common::keymap_directory, $Arch_Common::keymap_extension);
+    foreach (@keymaps) {
+        s/^$Arch_Common::keymap_directory//;
+        s/$Arch_Common::keymap_extension$//;
+    }
+    $kmlist->values(\@keymaps);    
 }
 
-sub Configure_Keymap_Browse {
+sub Configure_Keymap_Apply {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $cui = $win->parent;
-    
-    my $file = $cui->filebrowser(
-        -path => $Arch_Common::keymap_directory, 
-        -show_hidden => 0, 
-        -editfilename => 0, 
-        -mask => $Arch_Common::keymap_mask,
-        -title => "Select a keymap file", -bfg => "red", -tfg => "green");	
-    
     my $info = $win->getobj('info');
-    
-    if(!defined($file)) { $info->text("No keymap selected"); return; }        
-            
-    my ($keymap, $dir, $ext) = fileparse($file, '\..*');		
-    
-    `loadkeys $keymap > /dev/null`;
-    
-    if($?) { $info->text("Unable to load keymap $keymap") }
-    else { $info->text("Selected keymap $keymap") }    
+    my $kmlist = $win->getobj('keymaplist');            
+    my $km = $kmlist->get();
+    $km = (split(/\//, $km))[-1];
+    `loadkeys $km`;
+    if($?) {
+        $info->text("Loading keymap $km failed. See log for details");
+    }
+    else {
+        $info->text("Keymap $km loaded successfully");    
+    }    
 }
 
 #=======================================================================
@@ -58,7 +60,7 @@ sub Configure_Network_Focus {
     my $info = $win->getobj('info');            
     my $iflist = $win->getobj('interfacelist');
     
-    my (@values, %labels);    
+    my @values;    
     my @ipc = `ip addr`;    
     
     for (@ipc) {
@@ -67,13 +69,11 @@ sub Configure_Network_Focus {
             if($if eq 'lo') {
                 next;
             }
-            push @values, "$if ($state)";
-            $labels{$if} = "$if ($state)";
+            push @values, "$if ($state)";            
         }
     }
         
-    $iflist->values(\@values);
-    $iflist->labels(\%labels);
+    $iflist->values(\@values);    
     
     $info->text('Configure network...');
 }
@@ -84,12 +84,16 @@ sub Configure_Network_UpDown {
     my $info = $win->getobj('info');        
     my $iflist = $win->getobj('interfacelist');        
     my $iface = $iflist->get();
+    if(!defined($iface)) {
+        $info->text("You must select an interface first");
+        return
+    }
     
     $iface =~ /(.*)\s/;
     $iface = $1;    
-    my ($op, $val) = (undef, $bbox->get());        
+    my ($op, $val) = (undef, $bbox->get());    
     if($val eq 'enable') { $op = 'up' }
-    elsif($val eq 'disable') { $op = 'down' }
+    elsif($val eq 'disable') { $op = 'down' }    
     
     `ip link set $iface $op > /dev/null`;
     

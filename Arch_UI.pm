@@ -12,15 +12,10 @@ my $cui;
 my %win = ();
 my %win_args = (-border => 1, -titlereverse => 0, -pad => 1, -ipad => 1, -bfg => 'red', -tfg => 'green' );
 
-sub add_nav_menu
-{    
-    my ($win, $caption, $dest) = @_;
-    
-    $win->add(undef, 'Buttonbox', -y => -1,
-        -buttons  => [
-            { -label => $caption, -value => $caption, -onpress => sub { $dest->focus } }
-        ]
-    );
+sub handler_quit()
+{
+    $cui->mainloopExit();
+    exit(0);
 }
 
 sub run()
@@ -58,13 +53,14 @@ sub run()
     
     $win{'Configure_Keymap'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);
     
-    $win{'Configure_Keymap'}->add(undef, 'Buttonbox', -y => 12,
-        -buttons  => [
-            { -label => 'Browse keymaps', -value => 'browse_keymaps', -onpress => \&Arch_Callbacks::Configure_Keymap_Browse }
-        ]
-    );        
+    $win{'Configure_Keymap'}->add('keymaplist', 'Radiobuttonbox', -x => 1, -y => 3, -width => -1, -height => 9, -vscrollbar => 'right', -border => 1);
     
-    add_nav_menu($win{'Configure_Keymap'}, 'Return to main menu', $win{'Menu_Main'});
+    $win{'Configure_Keymap'}->add(undef, 'Buttonbox', -y => -1,
+        -buttons  => [
+            { -label => 'Apply', -value => 'apply', -onpress => \&Arch_Callbacks::Configure_Keymap_Apply },
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
+        ]
+    );            
     
     #=======================================================================
     # UI - Configure network
@@ -77,14 +73,13 @@ sub run()
     
     $win{'Configure_Network'}->add('interfacelist', 'Radiobuttonbox', -x => 1, -y => 5, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1);
     
-    $win{'Configure_Network'}->add(undef, 'Buttonbox', -y => 12,
+    $win{'Configure_Network'}->add(undef, 'Buttonbox', -y => -1,
         -buttons => [
             { -label => 'Enable', -value => 'enable', -onpress => \&Arch_Callbacks::Configure_Network_UpDown },
-            { -label => 'Disable', -value => 'disable', -onpress => \&Arch_Callbacks::Configure_Network_UpDown }
+            { -label => 'Disable', -value => 'disable', -onpress => \&Arch_Callbacks::Configure_Network_UpDown },
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
         ]
-    );
-    
-    add_nav_menu($win{'Configure_Network'}, 'Return to main menu', $win{'Menu_Main'});
+    );    
  
     #=======================================================================
     # UI - Prepare hard drive
@@ -95,13 +90,12 @@ sub run()
     
     $win{'Prep_Hard_Drive'}->add('devmenu', 'Radiobuttonbox', -x => 1, -y => 3, -width => -1, -height => 4, -vscrollbar => 'right', -border => 1);
     
-    $win{'Prep_Hard_Drive'}->add(undef, 'Buttonbox', -y => 12,
+    $win{'Prep_Hard_Drive'}->add(undef, 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => 'Format with cfdisk', -value => 'cfdisk', -onpress => \&Arch_Callbacks::Prep_Hard_Drive_Cfdisk },            
+            { -label => 'Format with cfdisk', -value => 'cfdisk', -onpress => \&Arch_Callbacks::Prep_Hard_Drive_Cfdisk },
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
         ]
-    );
-    
-    add_nav_menu($win{'Prep_Hard_Drive'}, 'Return to main menu', $win{'Menu_Main'});
+    );    
     
     #=======================================================================
     # UI - Select mount points and filesystem
@@ -110,7 +104,11 @@ sub run()
     $win{'Select_Mount_Points'} = $cui->add('Window_Select_Mount_Points', 'Window', -title => 'Archibald: Select mount points and filesystem', %win_args,
         -onFocus => \&Arch_Callbacks::Select_Mount_Points_Focus);
     
-    add_nav_menu($win{'Select_Mount_Points'}, 'Return to main menu', $win{'Menu_Main'});
+    $win{'Select_Mount_Points'}->add(undef, 'Buttonbox', -y => -1,
+        -buttons => [            
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
+        ]
+    );    
     
     #=======================================================================
     # UI - Select installation mirror
@@ -121,7 +119,11 @@ sub run()
     
     $win{'Select_Mirror'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
     
-    add_nav_menu($win{'Select_Mirror'}, 'Return to main menu', $win{'Menu_Main'});
+    $win{'Select_Mirror'}->add(undef, 'Buttonbox', -y => -1,
+        -buttons => [            
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
+        ]
+    );    
     
     #=======================================================================
     # UI - Install base system
@@ -132,7 +134,11 @@ sub run()
     
     $win{'Install_System'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
     
-    add_nav_menu($win{'Install_System'}, 'Return to main menu', $win{'Menu_Main'});
+    $win{'Install_System'}->add(undef, 'Buttonbox', -y => -1,
+        -buttons => [            
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
+        ]
+    );    
     
     #=======================================================================
     # UI - Configure system
@@ -143,7 +149,11 @@ sub run()
     
     $win{'Configure_System'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
     
-    add_nav_menu($win{'Configure_System'}, 'Return to main menu', $win{'Menu_Main'});
+    $win{'Configure_System'}->add(undef, 'Buttonbox', -y => -1,
+        -buttons => [            
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
+        ]
+    );    
     
     #=======================================================================
     # UI - Log
@@ -154,7 +164,11 @@ sub run()
     
     $win{'Log'}->add('editor', 'TextViewer', -y => 1, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
     
-    add_nav_menu($win{'Log'}, 'Return to main menu', $win{'Menu_Main'});
+    $win{'Log'}->add(undef, 'Buttonbox', -y => -1,
+        -buttons => [            
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
+        ]
+    );    
     
     #=======================================================================
     # UI - Reboot system
@@ -165,7 +179,11 @@ sub run()
     
     $win{'Reboot_System'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
     
-    add_nav_menu($win{'Reboot_System'}, 'Return to main menu', $win{'Menu_Main'});
+    $win{'Configure_System'}->add(undef, 'Buttonbox', -y => -1,
+        -buttons => [            
+            { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
+        ]
+    );    
     
     #=======================================================================
     # UI - Quit
@@ -192,12 +210,6 @@ sub run()
     
     $win{'Menu_Main'}->focus;
     $cui->mainloop;
-}
-
-sub handler_quit()
-{
-    $cui->mainloopExit();
-    exit(0);
 }
     
 #=======================================================================
