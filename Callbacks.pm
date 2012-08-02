@@ -18,67 +18,71 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #=======================================================================
 
-package Arch_Callbacks;
+#package Arch_Callbacks;
 
 use strict;
 use warnings;
 use File::Basename;
-use Arch_Common;
-use Arch_Functions;
+require Common;
+require Functions;
 
 #=======================================================================
 # Callbacks - Main menu
 #=======================================================================
     
-sub Menu_Main_Focus {    
+sub MM_focus {    
 }
 
 #=======================================================================
 # Callbacks - Configure keymap
 #=======================================================================
 
-sub Configure_Keymap_Focus
+sub CK_focus
 {
+    use vars qw($g_keymap_directory $g_keymap_extension);
+    
     my $win = shift;
     my $info = $win->getobj('info');
-    my $kmlist = $win->getobj('keymaplist');    
+    my $keymaplist = $win->getobj('keymaplist');    
         
-    my ($err, @keymaps) = Arch_Functions::get_files_from($Arch_Common::keymap_directory, $Arch_Common::keymap_extension);
+    my ($err, @keymaps) = get_files_from($g_keymap_directory, $g_keymap_extension);
     if($err) {
         $info->text('No keymaps found');
         return;
     }
     
     foreach (@keymaps) {
-        s/^$Arch_Common::keymap_directory//;
-        s/$Arch_Common::keymap_extension$//;
+        s/^$g_keymap_directory//;
+        s/$g_keymap_extension$//;
     }
-    $kmlist->values(\@keymaps);
+    
+    $keymaplist->values(\@keymaps);
     $info->text('Select a keymap...');
 }
 
-sub Configure_Keymap_Apply
+sub CK_nav_apply
 {
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
     my $kmlist = $win->getobj('keymaplist');            
     my $km = $kmlist->get();
+    
+    return unless defined($km);
+    
     $km = (split(/\//, $km))[-1];
+    
     `loadkeys $km`;
-    if($?) {
-        $info->text("Loading keymap $km failed. See log for details");
-    }
-    else {
-        $info->text("Keymap $km loaded successfully");    
-    }    
+    
+    if($?) { $info->text("Loading keymap $km failed. See log for details"); }
+    else { $info->text("Keymap $km loaded successfully"); }    
 }
 
 #=======================================================================
 # Callbacks - Configure network
 #=======================================================================
 
-sub Configure_Network_Focus
+sub CN_focus
 {
     my $win = shift;
     my $info = $win->getobj('info');            
@@ -97,12 +101,11 @@ sub Configure_Network_Focus
         }
     }
         
-    $iflist->values(\@values);    
-    
+    $iflist->values(\@values);        
     $info->text('Configure network...');
 }
 
-sub Configure_Network_UpDown
+sub CN_nav_updown
 {
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -130,10 +133,10 @@ sub Configure_Network_UpDown
 # Callbacks - Prepare hard drive
 #=======================================================================
 
-sub Prep_Hard_Drive_Focus
+sub PHD_focus
 {    
     my $win = shift;    
-    my $dm = $win->getobj('devmenu');
+    my $dm = $win->getobj('devicelist');
     
     my (@values, %labels);
     my @ipc = `fdisk -l`;    
@@ -149,16 +152,18 @@ sub Prep_Hard_Drive_Focus
     $dm->labels(\%labels);    
 }
 
-sub Prep_Hard_Drive_Cfdisk
+sub PHD_nav_cfdisk
 {
     my $bbox = shift;
     my $cui = $bbox->parent->parent;
-    my $dm = $bbox->parent->getobj('devmenu');
+    my $dm = $bbox->parent->getobj('devicelist');
     my $disk = (split(/\s/, $dm->get()))[1];
     $disk =~ s/:$//;    
     
-    $cui->leave_curses();    
-    system("cfdisk $disk");    
+    $cui->leave_curses();
+    
+    system("cfdisk $disk");
+    
     $cui->reset_curses();
 }
 
@@ -166,13 +171,11 @@ sub Prep_Hard_Drive_Cfdisk
 # Callbacks - Select mount points and filesystem
 #=======================================================================
 
-sub Select_Mount_Points_Focus
+sub SMP_focus
 {
     my $win = shift;
     my $info = $win->getobj('info');
-    my $devbox = $win->getobj('devmenu');    
-    
-    $info->text('Select a device...');
+    my $devicelist = $win->getobj('devicelist');    
     
     my %disks;
     my @ipc = `fdisk -l`;    
@@ -184,109 +187,170 @@ sub Select_Mount_Points_Focus
         }
     }
         
-    $devbox->values(keys %disks);    
+    $devicelist->values(keys %disks);
+    $info->text('Select a device...');
 }
 
-sub Select_Mount_Points_SelectDevice
+sub SMP_devicelist_change
 {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my ($info, $devmenu, $partmenu) = ($win->getobj('info'), $win->getobj('devmenu'), $win->getobj('partmenu'));    
-    my $dev = $devmenu->get();
-    return unless defined($dev);
+    my ($info, $devicelist, $partlist) = ($win->getobj('info'), $win->getobj('devicelist'), $win->getobj('partlist'));    
+    my $device = $devicelist->get();
     
-    $info->text('Select a partition...');
+    return unless defined($device);    
     
     my @partitions;
     my @ipc = `fdisk -l`;    
         
     for (@ipc) {
-        if (/^$dev\d+/) {            
+        if (/^$device\d+/) {            
             /(\S+)\s/;            
             push @partitions, $1;
         }
     }
     
-    $partmenu->values(\@partitions);
-    $partmenu->focus;
+    $partlist->values(\@partitions);
+    $partlist->focus;        
 }
 
-sub Select_Mount_Points_SelectPartition
+sub SMP_devicelist_focus
 {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $mpoints = $win->getobj('mountmenu');
-    $mpoints->values(['boot', 'swap', 'root', 'home', 'dev', 'var']);
-    $mpoints->focus;
+    my $info = $win->getobj('info');
+    
+    $info->text('Select a device...');
 }
 
-sub Select_Mount_Points_SelectMountPoint
+sub SMP_partlist_change
 {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $fsmenu = $win->getobj('fsmenu');
-    $fsmenu->values(['ext2', 'ext3', 'ext4', 'swap']);
-    $fsmenu->focus;
+    my $info = $win->getobj('info');    
+    my $mountlist = $win->getobj('mountlist');
+    
+    $mountlist->values(['boot', 'swap', 'root', 'home', 'dev', 'var']);
+    $mountlist->focus;    
 }
 
-sub Select_Mount_Points_SelectFS
+sub SMP_partlist_focus
 {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $navmenu = $win->getobj('navmenu');
-    $navmenu->focus;
+    my $info = $win->getobj('info');
+    
+    $info->text('Select a partition...');
 }
 
-sub Select_Mount_Points_Apply
+sub SMP_mountlist_change
+{
+    my $bbox = shift;
+    my $win = $bbox->parent;    
+    my $fslist = $win->getobj('fslist');
+    
+    $fslist->values(['ext2', 'ext3', 'ext4', 'swap']);
+    $fslist->focus;    
+}
+
+sub SMP_mountlist_focus
 {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my ($devmenu, $partmenu, $mountmenu, $fsmenu, $mountpoints) = (
-        $win->getobj('devmenu'), $win->getobj('partmenu'), $win->getobj('mountmenu'), $win->getobj('fsmenu'), $win->getobj('mountpoints')
+    my $info = $win->getobj('info');
+    
+    $info->text('Select a mount point...');
+}
+
+sub SMP_fslist_change
+{    
+}
+
+sub SMP_fslist_focus
+{
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');
+    
+    $info->text('Select a file system type...');
+}
+
+sub SMP_partsize_focus
+{
+    my $te = shift;
+    my $win = $te->parent;
+    my $info = $win->getobj('info');
+    
+    $info->text('Type a size in MB...');
+}
+ 
+sub SMP_nav_focus
+{
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');
+    
+    $info->text('');
+}
+ 
+sub SMP_nav_apply
+{
+    use vars qw(@partition_table);
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');    
+    my ($devicelist, $partlist, $mountlist, $fslist, $partsize, $parttable) = (
+        $win->getobj('devicelist'), $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
     );                
         
-    my $entry = $partmenu->get() . ':' . $mountmenu->get() . ':' . $fsmenu->get();
-    push @Arch_Common::partition_table, $entry;
+    my $ps = $partsize->get();
+    $ps =~ m/(\d+)/;
+    my $entry = $partlist->get() . ':' . $mountlist->get() . ':' . $fslist->get() . ':' . $1;
+    push @partition_table, $entry;
     
-    $mountpoints->values(\@Arch_Common::partition_table);
-    $mountpoints->draw(0);
-    $mountpoints->focusable(0);
-    $devmenu->focus;
+    $parttable->values(\@partition_table);
+    $parttable->draw(0);
+    $parttable->focusable(0);
+    $devicelist->focus;    
 }
 
-sub Select_Mount_Points_Write
+sub SMP_nav_write
 {
-    # Write Arch_Common::partition_table to disk and empty it...
+    # Write partition_table to disk and empty it...
 }
 
-sub Select_Mount_Points_Clear
+sub SMP_nav_clear
 {
+    use vars qw(@partition_table);
     my $bbox = shift;
     my $win = $bbox->parent;
-    my ($devmenu, $mountpoints) = ($win->getobj('devmenu'), $win->getobj('mountpoints'));    
-    @Arch_Common::partition_table = ();
-    $mountpoints->values(\@Arch_Common::partition_table);
-    $mountpoints->draw(0);
-    $mountpoints->focusable(0);
-    $devmenu->focus;
+    my ($devicelist, $parttable) = ($win->getobj('devicelist'), $win->getobj('parttable'));
+    
+    @partition_table = ();
+    $parttable->values(\@partition_table);
+    $parttable->draw(0);
+    $parttable->focusable(0);
+    $devicelist->focus;
 }
 
 #=======================================================================
 # Callbacks - Select mirror
 #=======================================================================
 
-sub Select_Mirror_Focus
+sub SM_focus
 {
+    use vars qw($g_mirrorlist);
+    
     my $win = shift;
-    my ($info, $mlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));    
+    my ($info, $mirrorlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));    
     my ($prev, $url);
     
-    unless(-e $Arch_Common::mirrorlist) {
-        $info->text("The file $Arch_Common::mirrorlist was not found");
+    unless(-e $g_mirrorlist) {
+        $info->text("The file $g_mirrorlist was not found");
         return;
     }
     
-    open FILE, $Arch_Common::mirrorlist;
+    open FILE, $g_mirrorlist;
     my @content = <FILE>;
     close FILE;
     my %mirrors;
@@ -299,20 +363,22 @@ sub Select_Mirror_Focus
         $prev = $_;
     }
     
-    $mlist->values(map { "$_ - $mirrors{$_}" } keys %mirrors);
+    $mirrorlist->values(map { "$_ - $mirrors{$_}" } keys %mirrors);
     $info->text('Select the mirrors you want to enable');
 }
 
-sub Select_Mirror_Apply
+sub SM_nav_apply
 {
+    use vars qw($g_mirrorlist);
+    
     my $bbox = shift;
     my $win = $bbox->parent;
-    my ($info, $lbox) = ($win->getobj('info'), $win->getobj('mirrorlist'));            
-    my @selected = $lbox->get();
+    my ($info, $mirrorlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));            
+    my @selected = $mirrorlist->get();
     my ($url, $found);
         
-    open (my $in, "<", $Arch_Common::mirrorlist);
-    open (my $out, ">", $Arch_Common::mirrorlist . '.tmp');    
+    open (my $in, "<", $g_mirrorlist);
+    open (my $out, ">", $g_mirrorlist . '.tmp');    
 
     while(my $line = <$in>) {        
         if ($line =~ /^\s*$/) {
@@ -339,7 +405,7 @@ sub Select_Mirror_Apply
     close $in;
     close $out;
     
-    rename $Arch_Common::mirrorlist . '.tmp', $Arch_Common::mirrorlist;
+    rename $g_mirrorlist . '.tmp', $g_mirrorlist;
     
     $info->text('mirrorlist generated successfully');
 }
@@ -348,7 +414,7 @@ sub Select_Mirror_Apply
 # Callbacks - Install system
 #=======================================================================
 
-sub Install_System_Focus
+sub IS_focus
 {
     #my $this = shift;
     #my $info = $this->getobj('info');    
@@ -358,7 +424,7 @@ sub Install_System_Focus
 # Callbacks - Configure system
 #=======================================================================
 
-sub Configure_System_Focus
+sub CS_focus
 {
     #my $this = shift;
     #my $info = $this->getobj('info');    
@@ -368,10 +434,11 @@ sub Configure_System_Focus
 # Callbacks - Log
 #=======================================================================
 
-sub Log_Focus
+sub L_focus
 {
     my $win = shift;
-    my $info = $win->getobj('editor');    
+    my $info = $win->getobj('viewer');
+    
     open FILE, "< stderr.log";
     my @content = <FILE>; close FILE;    
     $info->text(join('', reverse(@content)));
@@ -381,7 +448,7 @@ sub Log_Focus
 # Callbacks - Reboot
 #=======================================================================
 
-sub Reboot_System_Focus
+sub RS_focus
 {
     #my $this = shift;
     #my $info = $this->getobj('info');    
@@ -391,10 +458,11 @@ sub Reboot_System_Focus
 # Callbacks - Quit
 #=======================================================================
 
-sub Quit_Focus
+sub Q_focus
 {
     my $win = shift;
     my $info = $win->getobj('info');
+    
     $info->text('Are you sure?');
 }
 

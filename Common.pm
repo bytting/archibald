@@ -18,18 +18,16 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #=======================================================================
 
-package Arch_Common;
-
 use strict;
 use warnings;
 
-our ($keymap_directory, $keymap_extension, $keymap_mask, @partition_table, $mirrorlist);
+our ($g_keymap_directory, $g_keymap_extension, $g_keymap_mask, @g_partition_table, $g_mirrorlist);
 
-$keymap_directory = '/usr/share/kbd/keymaps/';
-$keymap_extension = '.map.gz';
-$keymap_mask = [[ '\.map.gz$', "Keymap files (*$keymap_extension)" ]];
+$g_keymap_directory = '/usr/share/kbd/keymaps/';
+$g_keymap_extension = '.map.gz';
+$g_keymap_mask = [[ '\.map.gz$', "Keymap files (*$g_keymap_extension)" ]];
 
-$mirrorlist = '/etc/pacman.d/mirrorlist';
+$g_mirrorlist = '/etc/pacman.d/mirrorlist';
 
 #=======================================================================
 1;

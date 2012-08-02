@@ -21,7 +21,7 @@
 use strict;
 use warnings;
 use IO::Handle;
-use Arch_UI;
+use UI;
 
 use strict 'subs';
 
@@ -31,6 +31,6 @@ die "This script must be run as root" if $login ne 'root';
 open STDERR, ">stderr.log" or die $!;
 STDERR->autoflush(1);
 
-Arch_UI::run();
+UI::run();
 
 #=======================================================================
