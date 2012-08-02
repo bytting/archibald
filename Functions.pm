@@ -26,7 +26,7 @@ use File::Find;
 # get_files_from: Get a list of files recursively
 #=======================================================================
 
-sub get_files_from
+sub find_files_deep
 {
     my $dir = shift;
     my $ext = shift;

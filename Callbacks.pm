@@ -45,7 +45,7 @@ sub CK_focus
     my $info = $win->getobj('info');
     my $keymaplist = $win->getobj('keymaplist');    
         
-    my ($err, @keymaps) = get_files_from($g_keymap_directory, $g_keymap_extension);
+    my ($err, @keymaps) = find_files_deep($g_keymap_directory, $g_keymap_extension);
     if($err) {
         $info->text('No keymaps found');
         return;
