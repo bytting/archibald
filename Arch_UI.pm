@@ -88,7 +88,7 @@ sub run()
     $win{'Prep_Hard_Drive'} = $cui->add('Window_Prep_Hard_Drive', 'Window', -title => 'Archibald: Prepare hard drive', %win_args,
         -onFocus => \&Arch_Callbacks::Prep_Hard_Drive_Focus);
     
-    $win{'Prep_Hard_Drive'}->add('devmenu', 'Radiobuttonbox', -x => 1, -y => 3, -width => -1, -height => 4, -vscrollbar => 'right', -border => 1);
+    $win{'Prep_Hard_Drive'}->add('devmenu', 'Radiobuttonbox', -x => 1, -y => 3, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1);
     
     $win{'Prep_Hard_Drive'}->add(undef, 'Buttonbox', -y => -1,
         -buttons => [
@@ -103,9 +103,33 @@ sub run()
     
     $win{'Select_Mount_Points'} = $cui->add('Window_Select_Mount_Points', 'Window', -title => 'Archibald: Select mount points and filesystem', %win_args,
         -onFocus => \&Arch_Callbacks::Select_Mount_Points_Focus);
+
+    $win{'Select_Mount_Points'}->add('info', 'Label', -x => 1, -y => 1, -width => -1, -bold => 1);
+        
+    $win{'Select_Mount_Points'}->add('devmenu', 'Radiobuttonbox', -x => 1, -y => 3, -width => -1, -height => 6,
+        -vscrollbar => 'right', -border => 1,
+        -onchange => \&Arch_Callbacks::Select_Mount_Points_SelectDevice);
     
-    $win{'Select_Mount_Points'}->add(undef, 'Buttonbox', -y => -1,
-        -buttons => [            
+    $win{'Select_Mount_Points'}->add('partmenu', 'Radiobuttonbox', -x => 1, -y => 9, -width => 24, -height => 6,
+        -border => 1, -vscrollbar => 'right',
+        -onchange => \&Arch_Callbacks::Select_Mount_Points_SelectPartition);
+
+    $win{'Select_Mount_Points'}->add('mountmenu', 'Radiobuttonbox', -x => 25, -y => 9, -width => 24, -height => 6,
+        -border => 1, -vscrollbar => 'right',
+        -onchange => \&Arch_Callbacks::Select_Mount_Points_SelectMountPoint);
+        
+    $win{'Select_Mount_Points'}->add('fsmenu', 'Radiobuttonbox', -x => 49, -y => 9, -width => 24, -height => 6,
+        -border => 1, -vscrollbar => 'right',
+        -onchange => \&Arch_Callbacks::Select_Mount_Points_SelectFS);
+    
+    $win{'Select_Mount_Points'}->add('mountpoints', 'Listbox', -x => 1, -y => 15, -width => -1, -height => 6,
+        -border => 1, -vscrollbar => 'right', -focusable => 0);
+    
+    $win{'Select_Mount_Points'}->add('navmenu', 'Buttonbox', -y => -1,
+        -buttons => [
+            { -label => 'Apply selection', -value => 'apply', -onpress => \&Arch_Callbacks::Select_Mount_Points_Apply },
+            { -label => 'Write to disk', -value => 'write', -onpress => \&Arch_Callbacks::Select_Mount_Points_Write },
+            { -label => 'Clear', -value => 'clear', -onpress => \&Arch_Callbacks::Select_Mount_Points_Clear },
             { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
         ]
     );    
@@ -179,7 +203,7 @@ sub run()
     
     $win{'Reboot_System'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
     
-    $win{'Configure_System'}->add(undef, 'Buttonbox', -y => -1,
+    $win{'Reboot_System'}->add(undef, 'Buttonbox', -y => -1,
         -buttons => [            
             { -label => 'Back', -value => 'back', -onpress => sub { $win{'Menu_Main'}->focus } }
         ]

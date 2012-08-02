@@ -140,8 +140,104 @@ sub Prep_Hard_Drive_Cfdisk {
 #=======================================================================
 
 sub Select_Mount_Points_Focus {
-    #my $this = shift;
-    #my $info = $this->getobj('info');    
+    my $win = shift;
+    my $info = $win->getobj('info');
+    my $devbox = $win->getobj('devmenu');    
+    
+    $info->text('Select a device...');
+    
+    my %disks;
+    my @ipc = `fdisk -l`;    
+    
+    for (@ipc) {
+        if (/^Disk.+bytes$/) {
+            /(\/dev\/\w+):.+\s(\d+)\sbytes$/;            
+            $disks{$1} = $2;
+        }
+    }
+        
+    $devbox->values(keys %disks);    
+}
+
+sub Select_Mount_Points_SelectDevice {
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my ($info, $devmenu, $partmenu) = ($win->getobj('info'), $win->getobj('devmenu'), $win->getobj('partmenu'));    
+    my $dev = $devmenu->get();
+    return unless defined($dev);
+    
+    $info->text('Select a partition...');
+    
+    my @partitions;
+    my @ipc = `fdisk -l`;    
+        
+    for (@ipc) {
+        if (/^$dev\d+/) {            
+            /(\S+)\s/;            
+            push @partitions, $1;
+        }
+    }
+    
+    $partmenu->values(\@partitions);
+    $partmenu->focus;
+}
+
+sub Select_Mount_Points_SelectPartition {
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $mpoints = $win->getobj('mountmenu');
+    $mpoints->values(['boot', 'swap', 'root', 'home', 'dev', 'var']);
+    $mpoints->focus;
+}
+
+sub Select_Mount_Points_SelectMountPoint {
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $fsmenu = $win->getobj('fsmenu');
+    $fsmenu->values(['ext2', 'ext3', 'ext4', 'swap']);
+    $fsmenu->focus;
+}
+
+sub Select_Mount_Points_SelectFS {
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $navmenu = $win->getobj('navmenu');
+    $navmenu->focus;
+}
+
+sub Select_Mount_Points_Apply {
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $devmenu = $win->getobj('devmenu');
+    my $partmenu = $win->getobj('partmenu');
+    my $mountmenu = $win->getobj('mountmenu');
+    my $fsmenu = $win->getobj('fsmenu');
+    
+    my $mountpoints = $win->getobj('mountpoints');
+        
+    my $entry = $partmenu->get() . ':' . $mountmenu->get() . ':' . $fsmenu->get();
+    push @Arch_Common::partition_table, $entry;
+    
+    $mountpoints->values(\@Arch_Common::partition_table);
+    $mountpoints->draw(0);
+    $mountpoints->focusable(0);
+    $devmenu->focus;
+}
+
+sub Select_Mount_Points_Write {
+    # Write Arch_Common::partition_table to disk...
+}
+
+sub Select_Mount_Points_Clear {
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $devmenu = $win->getobj('devmenu');
+    my $mountpoints = $win->getobj('mountpoints');
+    @Arch_Common::partition_table = ();
+    $mountpoints->values(\@Arch_Common::partition_table);
+    $mountpoints->draw(0);
+    $mountpoints->focusable(0);
+    $devmenu->focus;
 }
 
 #=======================================================================

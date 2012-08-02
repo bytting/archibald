@@ -6,7 +6,7 @@ package Arch_Common;
 use strict;
 use warnings;
 
-our ($keymap_directory, $keymap_extension, $keymap_mask);
+our ($keymap_directory, $keymap_extension, $keymap_mask, @partition_table);
 
 $keymap_directory = '/usr/share/kbd/keymaps/';
 $keymap_extension = '.map.gz';
