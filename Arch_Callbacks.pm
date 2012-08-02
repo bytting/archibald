@@ -213,11 +213,8 @@ sub Select_Mount_Points_Apply {
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($devmenu, $partmenu, $mountmenu, $fsmenu, $mountpoints) = (
-        $win->getobj('devmenu'),
-        $win->getobj('partmenu'),
-        $win->getobj('mountmenu'),
-        $win->getobj('fsmenu'),
-        $win->getobj('mountpoints'));                
+        $win->getobj('devmenu'), $win->getobj('partmenu'), $win->getobj('mountmenu'), $win->getobj('fsmenu'), $win->getobj('mountpoints')
+    );                
         
     my $entry = $partmenu->get() . ':' . $mountmenu->get() . ':' . $fsmenu->get();
     push @Arch_Common::partition_table, $entry;
@@ -235,8 +232,7 @@ sub Select_Mount_Points_Write {
 sub Select_Mount_Points_Clear {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $devmenu = $win->getobj('devmenu');
-    my $mountpoints = $win->getobj('mountpoints');
+    my ($devmenu, $mountpoints) = ($win->getobj('devmenu'), $win->getobj('mountpoints'));    
     @Arch_Common::partition_table = ();
     $mountpoints->values(\@Arch_Common::partition_table);
     $mountpoints->draw(0);
@@ -250,16 +246,14 @@ sub Select_Mount_Points_Clear {
 
 sub Select_Mirror_Focus {
     my $win = shift;
-    my $info = $win->getobj('info');
-    my $mlist = $win->getobj('mirrorlist');
-    my ($last, $url);
+    my ($info, $mlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));    
+    my ($prev, $url);
+    
     unless(-e '/etc/pacman.d/mirrorlist') {
         $info->text('The file mirrorlist was not found');
         return;
     }
-    else {
-        $info->text('Select the mirrors you want to enable');
-    }
+    
     open FILE, '/etc/pacman.d/mirrorlist';
     my @content = <FILE>;
     close FILE;
@@ -267,22 +261,22 @@ sub Select_Mirror_Focus {
     foreach (@content) {
         if(/^\s*#*\s*Server\s*=\s*(.*)/) {
             $url = $1;
-            $last =~ s/^[\s#]*//;
-            $mirrors{$url} = $last;
+            $prev =~ s/^[\s#]*//;
+            $mirrors{$url} = $prev;
         }
-        $last = $_;
+        $prev = $_;
     }
     
-    $mlist->values(map { "$_ - $mirrors{$_}" } keys %mirrors);    
+    $mlist->values(map { "$_ - $mirrors{$_}" } keys %mirrors);
+    $info->text('Select the mirrors you want to enable');
 }
 
 sub Select_Mirror_Apply {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $info = $win->getobj('info');    
-    my $lbox = $win->getobj('mirrorlist');
-    my ($url, $found);
+    my ($info, $lbox) = ($win->getobj('info'), $win->getobj('mirrorlist'));            
     my @selected = $lbox->get();
+    my ($url, $found);
         
     open (my $in, "<", '/etc/pacman.d/mirrorlist');
     open (my $out, ">", '/etc/pacman.d/mirrorlist.tmp');    
@@ -299,6 +293,7 @@ sub Select_Mirror_Apply {
                 $found = 1;
                 $line =~ s/^[#\s]+//;                
                 print $out $line;
+                last;
             }
         }
         
