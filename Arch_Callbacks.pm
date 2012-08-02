@@ -1,4 +1,21 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
+#=======================================================================
+# Arch_Callbacks.pm - Callbacks for archibald.pl
+# Copyright (C) 2012  Dag Robøle
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #=======================================================================
 
 package Arch_Callbacks;
@@ -20,7 +37,8 @@ sub Menu_Main_Focus {
 # Callbacks - Configure keymap
 #=======================================================================
 
-sub Configure_Keymap_Focus {
+sub Configure_Keymap_Focus
+{
     my $win = shift;
     my $info = $win->getobj('info');
     my $kmlist = $win->getobj('keymaplist');    
@@ -39,7 +57,8 @@ sub Configure_Keymap_Focus {
     $info->text('Select a keymap...');
 }
 
-sub Configure_Keymap_Apply {
+sub Configure_Keymap_Apply
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
@@ -59,7 +78,8 @@ sub Configure_Keymap_Apply {
 # Callbacks - Configure network
 #=======================================================================
 
-sub Configure_Network_Focus {
+sub Configure_Network_Focus
+{
     my $win = shift;
     my $info = $win->getobj('info');            
     my $iflist = $win->getobj('interfacelist');
@@ -82,7 +102,8 @@ sub Configure_Network_Focus {
     $info->text('Configure network...');
 }
 
-sub Configure_Network_UpDown {
+sub Configure_Network_UpDown
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');        
@@ -109,7 +130,8 @@ sub Configure_Network_UpDown {
 # Callbacks - Prepare hard drive
 #=======================================================================
 
-sub Prep_Hard_Drive_Focus {    
+sub Prep_Hard_Drive_Focus
+{    
     my $win = shift;    
     my $dm = $win->getobj('devmenu');
     
@@ -127,7 +149,8 @@ sub Prep_Hard_Drive_Focus {
     $dm->labels(\%labels);    
 }
 
-sub Prep_Hard_Drive_Cfdisk {
+sub Prep_Hard_Drive_Cfdisk
+{
     my $bbox = shift;
     my $cui = $bbox->parent->parent;
     my $dm = $bbox->parent->getobj('devmenu');
@@ -143,7 +166,8 @@ sub Prep_Hard_Drive_Cfdisk {
 # Callbacks - Select mount points and filesystem
 #=======================================================================
 
-sub Select_Mount_Points_Focus {
+sub Select_Mount_Points_Focus
+{
     my $win = shift;
     my $info = $win->getobj('info');
     my $devbox = $win->getobj('devmenu');    
@@ -163,7 +187,8 @@ sub Select_Mount_Points_Focus {
     $devbox->values(keys %disks);    
 }
 
-sub Select_Mount_Points_SelectDevice {
+sub Select_Mount_Points_SelectDevice
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($info, $devmenu, $partmenu) = ($win->getobj('info'), $win->getobj('devmenu'), $win->getobj('partmenu'));    
@@ -186,7 +211,8 @@ sub Select_Mount_Points_SelectDevice {
     $partmenu->focus;
 }
 
-sub Select_Mount_Points_SelectPartition {
+sub Select_Mount_Points_SelectPartition
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my $mpoints = $win->getobj('mountmenu');
@@ -194,7 +220,8 @@ sub Select_Mount_Points_SelectPartition {
     $mpoints->focus;
 }
 
-sub Select_Mount_Points_SelectMountPoint {
+sub Select_Mount_Points_SelectMountPoint
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my $fsmenu = $win->getobj('fsmenu');
@@ -202,14 +229,16 @@ sub Select_Mount_Points_SelectMountPoint {
     $fsmenu->focus;
 }
 
-sub Select_Mount_Points_SelectFS {
+sub Select_Mount_Points_SelectFS
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my $navmenu = $win->getobj('navmenu');
     $navmenu->focus;
 }
 
-sub Select_Mount_Points_Apply {
+sub Select_Mount_Points_Apply
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($devmenu, $partmenu, $mountmenu, $fsmenu, $mountpoints) = (
@@ -225,11 +254,13 @@ sub Select_Mount_Points_Apply {
     $devmenu->focus;
 }
 
-sub Select_Mount_Points_Write {
+sub Select_Mount_Points_Write
+{
     # Write Arch_Common::partition_table to disk and empty it...
 }
 
-sub Select_Mount_Points_Clear {
+sub Select_Mount_Points_Clear
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($devmenu, $mountpoints) = ($win->getobj('devmenu'), $win->getobj('mountpoints'));    
@@ -244,17 +275,18 @@ sub Select_Mount_Points_Clear {
 # Callbacks - Select mirror
 #=======================================================================
 
-sub Select_Mirror_Focus {
+sub Select_Mirror_Focus
+{
     my $win = shift;
     my ($info, $mlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));    
     my ($prev, $url);
     
-    unless(-e '/etc/pacman.d/mirrorlist') {
-        $info->text('The file mirrorlist was not found');
+    unless(-e $Arch_Common::mirrorlist) {
+        $info->text("The file $Arch_Common::mirrorlist was not found");
         return;
     }
     
-    open FILE, '/etc/pacman.d/mirrorlist';
+    open FILE, $Arch_Common::mirrorlist;
     my @content = <FILE>;
     close FILE;
     my %mirrors;
@@ -271,15 +303,16 @@ sub Select_Mirror_Focus {
     $info->text('Select the mirrors you want to enable');
 }
 
-sub Select_Mirror_Apply {
+sub Select_Mirror_Apply
+{
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($info, $lbox) = ($win->getobj('info'), $win->getobj('mirrorlist'));            
     my @selected = $lbox->get();
     my ($url, $found);
         
-    open (my $in, "<", '/etc/pacman.d/mirrorlist');
-    open (my $out, ">", '/etc/pacman.d/mirrorlist.tmp');    
+    open (my $in, "<", $Arch_Common::mirrorlist);
+    open (my $out, ">", $Arch_Common::mirrorlist . '.tmp');    
 
     while(my $line = <$in>) {        
         if ($line =~ /^\s*$/) {
@@ -306,14 +339,17 @@ sub Select_Mirror_Apply {
     close $in;
     close $out;
     
-    rename '/etc/pacman.d/mirrorlist.tmp', '/etc/pacman.d/mirrorlist';
+    rename $Arch_Common::mirrorlist . '.tmp', $Arch_Common::mirrorlist;
+    
+    $info->text('mirrorlist generated successfully');
 }
 
 #=======================================================================
 # Callbacks - Install system
 #=======================================================================
 
-sub Install_System_Focus {
+sub Install_System_Focus
+{
     #my $this = shift;
     #my $info = $this->getobj('info');    
 }
@@ -322,7 +358,8 @@ sub Install_System_Focus {
 # Callbacks - Configure system
 #=======================================================================
 
-sub Configure_System_Focus {
+sub Configure_System_Focus
+{
     #my $this = shift;
     #my $info = $this->getobj('info');    
 }
@@ -331,7 +368,8 @@ sub Configure_System_Focus {
 # Callbacks - Log
 #=======================================================================
 
-sub Log_Focus {
+sub Log_Focus
+{
     my $win = shift;
     my $info = $win->getobj('editor');    
     open FILE, "< stderr.log";
@@ -343,7 +381,8 @@ sub Log_Focus {
 # Callbacks - Reboot
 #=======================================================================
 
-sub Reboot_System_Focus {
+sub Reboot_System_Focus
+{
     #my $this = shift;
     #my $info = $this->getobj('info');    
 }
@@ -352,7 +391,8 @@ sub Reboot_System_Focus {
 # Callbacks - Quit
 #=======================================================================
 
-sub Quit_Focus {
+sub Quit_Focus
+{
     my $win = shift;
     my $info = $win->getobj('info');
     $info->text('Are you sure?');
