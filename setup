@@ -23,4 +23,40 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+which pacman > /dev/null 2>&1
+if [ "$?" -ne "0" ]
+then
+    echo 'pacman does not appear to be installed. Exiting...'
+    exit 1
+fi
+
+function install_package
+{
+    pacman -Qs $1 > /dev/null 2>&1    
+    if [ "$?" -ne "0" ]
+    then
+        echo "Installing $1..."
+        pacman -S --noconfirm $1 > /dev/null 2>&1        
+        if [ "$?" -ne "0" ]
+        then
+            if [ "$2" -ne "0" ]
+            then
+                echo "Installation of required package $1 failed. Exiting..."
+                exit 1
+            else
+                echo "Installation of package $1 failed. Some functionality in archibald may be unavailable!"
+            fi
+        fi
+    else
+        echo "$1 already installed."
+    fi    
+}
+
+echo "Installing prerequisites, please wait..."
+
+install_package perl-curses 1
+install_package perl-curses-ui 1
+install_package fdisk 1
+install_package gdisk 0
+
 exec ./archibald.pl

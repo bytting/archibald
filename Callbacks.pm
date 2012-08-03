@@ -155,15 +155,23 @@ sub PHD_focus
 sub PHD_nav_format
 {
     my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');
     my $cui = $bbox->parent->parent;
-    my $client = $bbox->get();
+    my $client = $bbox->get();    
     my $devicelist = $bbox->parent->getobj('devicelist');
     my $disk = (split(/\s/, $devicelist->get()))[1];    
-    $disk =~ s/:$//;    
+    $disk =~ s/:$//;
+    
+    `which $client`;
+    if($?) {
+        $info->text("The program $client does not appear to be installed");
+        return;
+    }
     
     $cui->leave_curses();    
     
-    system("$client $disk");
+    system("$client $disk");    
     
     $cui->reset_curses();
 }

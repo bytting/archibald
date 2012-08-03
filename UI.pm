@@ -51,7 +51,7 @@ sub run()
             { -label => 'Configure network for the live system', -value => 'cn', -onpress => sub { $win{'CN'}->focus } },
             { -label => 'Prepare hard drive', -value => 'phd', -onpress => sub { $win{'PHD'}->focus } },
             { -label => 'Select mount points and filesystem (Required)', -value => 'smp', -onpress => sub { $win{'SMP'}->focus } },
-            { -label => 'Select installation mirror', -value => 'sm', -onpress => sub { $win{'SM'}->focus } },
+            { -label => 'Select installation mirrors', -value => 'sm', -onpress => sub { $win{'SM'}->focus } },
             { -label => 'Install base system (Required)', -value => 'is', -onpress => sub { $win{'IS'}->focus } },
             { -label => 'Configure the new system (Required)', -value => 'cs', -onpress => sub { $win{'CS'}->focus } },
             { -label => 'Show error log', -value => 'l', -onpress => sub { $win{'L'}->focus } },
@@ -64,7 +64,7 @@ sub run()
     # UI - Configure keymap
     #=======================================================================
     
-    $win{'CK'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure keymap', %win_args, -onFocus => \&CK_focus);
+    $win{'CK'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure keymap for the live system', %win_args, -onFocus => \&CK_focus);
     
     $win{'CK'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);
     
@@ -81,7 +81,7 @@ sub run()
     # UI - Configure network
     #=======================================================================
     
-    $win{'CN'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure network', %win_args, -onFocus => \&CN_focus);
+    $win{'CN'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure network for the live system', %win_args, -onFocus => \&CN_focus);
     
     $win{'CN'}->add('info', 'Label', -x => 1, -y => 1, -width => -1, -bold => 1);
     
@@ -90,7 +90,7 @@ sub run()
     $win{'CN'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
             { -label => 'Enable', -value => 'enable', -onpress => \&CN_nav_updown },
-            { -label => 'Disable', -value => 'disable', -onpress => \&CN_nav_upuown },
+            { -label => 'Disable', -value => 'disable', -onpress => \&CN_nav_updown },
             { -label => 'Back', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
     );    
@@ -100,6 +100,8 @@ sub run()
     #=======================================================================
     
     $win{'PHD'} = $cui->add(undef, 'Window', -title => 'Archibald: Prepare hard drive', %win_args, -onFocus => \&PHD_focus);
+    
+    $win{'PHD'}->add('info', 'Label', -x => 1, -y => 1, -width => -1, -bold => 1);
     
     $win{'PHD'}->add('devicelist', 'Radiobuttonbox', -x => 1, -y => 3, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1);
     
@@ -158,7 +160,7 @@ sub run()
     # UI - Select installation mirror
     #=======================================================================
     
-    $win{'SM'} = $cui->add(undef, 'Window', -title => 'Archibald: Select installation mirror', %win_args, -onFocus => \&SM_focus);
+    $win{'SM'} = $cui->add(undef, 'Window', -title => 'Archibald: Select installation mirrors', %win_args, -onFocus => \&SM_focus);
     
     $win{'SM'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);
     
