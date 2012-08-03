@@ -105,7 +105,8 @@ sub run()
     
     $win{'PHD'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => 'Format with cfdisk', -value => 'cfdisk', -onpress => \&PHD_nav_cfdisk },
+            { -label => 'Format with cfdisk', -value => 'cfdisk', -onpress => \&PHD_nav_format },
+            { -label => 'Format with cgdisk (gpt)', -value => 'cgdisk', -onpress => \&PHD_nav_format },
             { -label => 'Back', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
     );    

@@ -136,7 +136,7 @@ sub CN_nav_updown
 sub PHD_focus
 {    
     my $win = shift;    
-    my $dm = $win->getobj('devicelist');
+    my $devicelist = $win->getobj('devicelist');
     
     my (@values, %labels);
     my @ipc = `fdisk -l`;    
@@ -148,21 +148,22 @@ sub PHD_focus
         }
     }
         
-    $dm->values(\@values);
-    $dm->labels(\%labels);    
+    $devicelist->values(\@values);
+    $devicelist->labels(\%labels);    
 }
 
-sub PHD_nav_cfdisk
+sub PHD_nav_format
 {
     my $bbox = shift;
     my $cui = $bbox->parent->parent;
-    my $dm = $bbox->parent->getobj('devicelist');
-    my $disk = (split(/\s/, $dm->get()))[1];
+    my $client = $bbox->get();
+    my $devicelist = $bbox->parent->getobj('devicelist');
+    my $disk = (split(/\s/, $devicelist->get()))[1];    
     $disk =~ s/:$//;    
     
-    $cui->leave_curses();
+    $cui->leave_curses();    
     
-    system("cfdisk $disk");
+    system("$client $disk");
     
     $cui->reset_curses();
 }

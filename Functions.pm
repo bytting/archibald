@@ -23,7 +23,7 @@ use warnings;
 use File::Find;
 
 #=======================================================================
-# get_files_from: Get a list of files recursively
+# find_files_deep: Get a list of files recursively
 #=======================================================================
 
 sub find_files_deep
