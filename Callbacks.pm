@@ -23,6 +23,7 @@
 use strict;
 use warnings;
 use File::Basename;
+use feature qw(switch);
 require Common;
 require Functions;
 
@@ -184,7 +185,14 @@ sub SMP_focus
 {
     my $win = shift;
     my $info = $win->getobj('info');
-    my $devicelist = $win->getobj('devicelist');    
+    my $devicelist = $win->getobj('devicelist');
+    my $partlist = $win->getobj('partlist');
+    my $mountlist = $win->getobj('mountlist');
+    my $fslist = $win->getobj('fslist');
+    
+    $partlist->clear_selection();
+    $mountlist->clear_selection();
+    $fslist->clear_selection();
     
     my %disks;
     my @ipc = `fdisk -l`;    
@@ -196,7 +204,8 @@ sub SMP_focus
         }
     }
         
-    $devicelist->values(keys %disks);
+    $devicelist->values(keys %disks);    
+    $devicelist->focus;
     $info->text('Select a device...');
 }
 
@@ -272,7 +281,12 @@ sub SMP_mountlist_focus
 }
 
 sub SMP_fslist_change
-{    
+{
+    my $bbox = shift;
+    my $win = $bbox->parent;    
+    my $nav = $win->getobj('nav');
+    
+    $nav->focus;    
 }
 
 sub SMP_fslist_focus
@@ -282,15 +296,6 @@ sub SMP_fslist_focus
     my $info = $win->getobj('info');
     
     $info->text('Select a file system type...');
-}
-
-sub SMP_partsize_focus
-{
-    my $te = shift;
-    my $win = $te->parent;
-    my $info = $win->getobj('info');
-    
-    $info->text('Type a size in MB...');
 }
  
 sub SMP_nav_focus
@@ -302,30 +307,53 @@ sub SMP_nav_focus
     $info->text('');
 }
  
-sub SMP_nav_apply
+sub SMP_nav_add
 {
-    use vars qw(@partition_table);
+    use vars qw(@g_partition_table);
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');    
-    my ($devicelist, $partlist, $mountlist, $fslist, $partsize, $parttable) = (
-        $win->getobj('devicelist'), $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
+    my ($devicelist, $partlist, $mountlist, $fslist, $parttable) = (
+        $win->getobj('devicelist'), $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('parttable')
     );                
-        
-    my $ps = $partsize->get();
-    $ps =~ m/(\d+)/;
-    my $entry = $partlist->get() . ':' . $mountlist->get() . ':' . $fslist->get() . ':' . $1;
-    push @partition_table, $entry;
     
-    $parttable->values(\@partition_table);
+    my $entry = $partlist->get() . ':' . $mountlist->get() . ':' . $fslist->get();
+    push @g_partition_table, $entry;
+    
+    $parttable->values(\@g_partition_table);
     $parttable->draw(0);
     $parttable->focusable(0);
     $devicelist->focus;    
 }
 
-sub SMP_nav_write
+sub SMP_nav_apply
 {
-    # Write partition_table to disk and empty it...
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');
+    my $parttable = $win->getobj('parttable');
+    
+    if(!@g_partition_table) {
+        $info->text('Configuration is empty. Nothing to do...');
+        return;
+    }
+    
+    foreach(@g_partition_table) {
+        my ($part, $mount, $fs) = split(/:/);
+        
+        given($fs) {
+            when ('ext2') { `mkfs.ext2 $part` }
+            when ('ext3') { `mkfs.ext3 $part` }
+            when ('ext4') { `mkfs.ext4 $part` }
+            when ('swap') { `mkswap $part && swapon $part` }
+            default {
+               $info->text("Unsupported filesystem found ($fs). See log for details");
+               print STDERR "Filesystem $fs not supported\n";
+            }
+        }        
+    }
+        
+    $info->text('Configuration applied successfully');
 }
 
 sub SMP_nav_clear
@@ -424,9 +452,89 @@ sub SM_nav_apply
 #=======================================================================
 
 sub IS_focus
+{       
+    my $win = shift;
+    my $info = $win->getobj('info');
+    my $bootloaderlist = $win->getobj('bootloaderlist');
+    
+    $bootloaderlist->values(['grub2', 'syslinux']);
+}
+
+sub IS_nav_go
 {
-    #my $this = shift;
-    #my $info = $this->getobj('info');    
+    use vars qw(@g_partition_table $g_bootloader);
+    
+    my $win = shift;
+    my $info = $win->getobj('info');
+    my $bootloaderlist = $win->getobj('bootloaderlist');
+        
+    if(!@g_partition_table) {
+        $info->text('Configuration is empty. Please set up a disk configuration in \'Select mount points and filesystem\' first');
+        return;
+    }    
+    
+    $g_bootloader = $bootloaderlist->get();    
+    
+    if(!defined($g_bootloader)) {
+        $info->text('You must select a bootloader first');
+        return;
+    }
+    
+    # mount partitions
+    my $root_ok = 0;
+    foreach(@g_partition_table) {
+        my ($part, $mount, $fs) = split(/:/);
+        if($mount == 'root') {            
+            `mount $part /mnt > /dev/null 2>&1`;
+            $root_ok = 1;
+        }
+    }
+    
+    if(!$root_ok) {
+        $info->text('Configuration has no root. Please set up a root configuration in \'Select mount points and filesystem\' first');
+        return;
+    }
+    
+    foreach(@g_partition_table) {
+        my ($part, $mount, $fs) = split(/:/);
+        
+        given($mount) {
+            when ('boot') {
+                `mkdir -p /mnt/boot > /dev/null 2>&1`;
+                `mount $part /mnt/boot > /dev/null 2>&1`;
+            }            
+            when ('root') {}
+            when ('home') {
+                `mkdir -p /mnt/home > /dev/null 2>&1`;
+                `mount $part /mnt/home > /dev/null 2>&1`;
+            }
+            when ('dev') {
+                `mkdir -p /mnt/dev > /dev/null 2>&1`;
+                `mount $part /mnt/dev > /dev/null 2>&1`;
+            }
+            when ('var') {
+                `mkdir -p /mnt/var > /dev/null 2>&1`;
+                `mount $part /mnt/var > /dev/null 2>&1`;
+            }
+            default {
+               $info->text("Unsupported mount point found ($mount). See log for details");
+               print STDERR "Mount point $mount not supported\n";
+            }
+        }        
+    }
+         
+    # install
+    `pacstrap /mnt base base-devel`;
+    
+    given($g_bootloader) {
+        when('syslinux') { `pacstrap /mnt syslinux` }        
+        when('grub2') { `pacstrap /mnt grub-bios` }
+        #when('grub2-EFI') { `pacstrap /mnt grub-efi-x86_64` }        
+    }
+    
+    `genfstab -p /mnt >> /mnt/etc/fstab`;
+    
+    $info->text("Installation was sucessful, now go to \'Configure the new system\' to prepare the system");
 }
 
 #=======================================================================
@@ -435,8 +543,52 @@ sub IS_focus
 
 sub CS_focus
 {
-    #my $this = shift;
-    #my $info = $this->getobj('info');    
+    use vars qw($g_bootloader);
+    
+    my $win = shift;
+    my $info = $win->getobj('info');
+    my $hostnameentry = $win->getobj('hostname');
+    
+    if(!defined($g_bootloader)) {
+        $info->text('You must select a bootloader in \'Install base system\' first');
+        return;
+    }
+    
+    my $hostname = $hostnameentry->get();
+    
+    if(!defined($hostname)) {
+        $info->text('You must select a hostname first');
+        return;
+    }
+    
+    # chroot into system
+    `arch-chroot /mnt > /dev/null 2>&1`;
+    
+    # setup hostname
+    `echo $hostname > /etc/hostname`;
+    # add hostname to /etc/hosts
+    
+    # setup vconsole.conf
+    
+    # setup timezone
+    
+    # setup locale
+    
+    # setup hardware clock
+    
+    # setup kernel modules
+    
+    # setup daemons
+    
+    # configure network
+    
+    # create initial ramdisk
+    
+    # configure bootloader
+    
+    # setup root password
+    
+    # unmount and exit chroot
 }
 
 #=======================================================================
@@ -447,10 +599,12 @@ sub L_focus
 {
     my $win = shift;
     my $info = $win->getobj('viewer');
+    my $nav = $win->getobj('nav');
     
     open FILE, "< stderr.log";
     my @content = <FILE>; close FILE;    
     $info->text(join('', reverse(@content)));
+    $nav->focus;
 }
 
 #=======================================================================

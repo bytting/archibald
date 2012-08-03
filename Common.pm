@@ -21,11 +21,10 @@
 use strict;
 use warnings;
 
-our ($g_keymap_directory, $g_keymap_extension, $g_keymap_mask, @g_partition_table, $g_mirrorlist);
+our ($g_keymap_directory, $g_keymap_extension, $g_bootloader, @g_partition_table, $g_mirrorlist);
 
 $g_keymap_directory = '/usr/share/kbd/keymaps/';
 $g_keymap_extension = '.map.gz';
-$g_keymap_mask = [[ '\.map.gz$', "Keymap files (*$g_keymap_extension)" ]];
 
 $g_mirrorlist = '/etc/pacman.d/mirrorlist';
 

@@ -141,16 +141,13 @@ sub run()
         -onchange => \&SMP_fslist_change,
         -onFocus => \&SMP_fslist_focus);
     
-    $win{'SMP'}->add('partsize', 'TextEntry', -x => 73, -y => 9, -width => 16, -height => 1, -border => 1,
-        -onFocus => \&SMP_partsize_focus);
-    
     $win{'SMP'}->add('parttable', 'Listbox', -x => 1, -y => 15, -width => -1, -height => 6,
         -border => 1, -vscrollbar => 'right', -focusable => 0);
     
     $win{'SMP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&SMP_nav_focus,
         -buttons => [
-            { -label => 'Apply selection', -value => 'apply', -onpress => \&SMP_nav_apply },
-            { -label => 'Write to disk', -value => 'write', -onpress => \&SMP_nav_write },
+            { -label => 'Add selection to configuration', -value => 'add', -onpress => \&SMP_nav_add },
+            { -label => 'Apply configuration', -value => 'apply', -onpress => \&SMP_nav_apply },
             { -label => 'Clear', -value => 'clear', -onpress => \&SMP_nav_clear },
             { -label => 'Back', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
@@ -181,8 +178,12 @@ sub run()
     
     $win{'IS'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
     
+    $win{'IS'}->add('bootloaderlist', 'Radiobuttonbox', -x => 1, -y => 3, -width => -1, -height => 6,
+        -border => 1, -vscrollbar => 'right');
+    
     $win{'IS'}->add('nav', 'Buttonbox', -y => -1,
-        -buttons => [            
+        -buttons => [
+            { -label => 'Go ahead...', -value => 'apply', -onpress => \&IS_nav_go },
             { -label => 'Back', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
     );    
@@ -194,6 +195,9 @@ sub run()
     $win{'CS'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure the new system', %win_args, -onFocus => \&CS_focus);
     
     $win{'CS'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1);    
+    
+    $win{'CS'}->add('hostname_label', 'Label', -x => 1, -y => 3, -width => 20, -bold => 1, -text => 'Hostname:');    
+    $win{'CS'}->add('hostname', 'TextEntry', -x => 22, -y => 3, -width => 30, -border => 1, -bold => 1);
     
     $win{'CS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [            
