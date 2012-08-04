@@ -618,91 +618,98 @@ sub CS_nav_apply
         
     my $timezone = $timezonelist->get();
     
-    # FIXME (chroot)
-    
-    # setup vconsole.conf
-    `echo "KEYMAP=$g_keymap" > /etc/vconsole.conf`;
-    `echo "FONT=" >> /etc/vconsole.conf`;
-    `echo "FONT_MAP=" >> /etc/vconsole.conf`;
-    
-    # setup timezone
-    `echo "$timezone" > /etc/timezone`;
-    `ln -s /usr/share/zoneinfo/$timezone /etc/localtime`;
-    
-    # setup locale
-    my @selected = $localelist->get();
-    my $locale_default = $localelist_default->get();
-    my $found;
-    
-    open (my $in, "<", $g_locale_gen);
-    open (my $out, ">", $g_locale_gen . '.tmp');    
-    
-    while(my $line = <$in>) {
-        $found = 0;
-        if ($line =~ /^#*[a-z]{2,3}_/) {            
-            foreach(@selected) {                
-                if(index($line, $_) != -1 or index($line, $locale_default) != -1) {
-                    $found = 1;
-                    $line =~ s/^[#\s]+//;                
-                    print $out $line;
-                    last;
-                }
-            }            
-        }        
-        
-        if(!$found) {
-            if($line !~ /^#/) { print $out "#$line"; }
-            else { print $out $line; }
-        }        
-    }
-    
-    close $in;
-    close $out;
-    
-    rename $g_locale_gen . '.tmp', $g_locale_gen;
-    
-    `locale-gen > /dev/null 2>&1`;
-    
-    my $locale_default_stripped = $locale_default;
-    $locale_default_stripped =~ s/\s+//;
-    
-    `echo "LANG=$locale_default" > /etc/locale.conf`;
-    
-    # setup hardware clock
-    my $localetime = $localetimecb->get();
-    if($localetime) {
-        `hwclock --systohc --localtime`;
+    my $pid;
+    if($pid = fork) {
+        waitpid($pid, 0);
     }
     else {
-        `hwclock --systohc --utc`;
+        # child    
+    
+        `arch-chroot /mnt > /dev/null 2>&1`;
+        
+        # setup vconsole.conf
+        `echo "KEYMAP=$g_keymap" > /etc/vconsole.conf`;
+        `echo "FONT=" >> /etc/vconsole.conf`;
+        `echo "FONT_MAP=" >> /etc/vconsole.conf`;
+        
+        # setup timezone
+        `echo "$timezone" > /etc/timezone`;
+        `ln -s /usr/share/zoneinfo/$timezone /etc/localtime`;
+        
+        # setup locale
+        my @selected = $localelist->get();
+        my $locale_default = $localelist_default->get();
+        my $found;
+        
+        open (my $in, "<", $g_locale_gen);
+        open (my $out, ">", $g_locale_gen . '.tmp');    
+        
+        while(my $line = <$in>) {
+            $found = 0;
+            if ($line =~ /^#*[a-z]{2,3}_/) {            
+                foreach(@selected) {                
+                    if(index($line, $_) != -1 or index($line, $locale_default) != -1) {
+                        $found = 1;
+                        $line =~ s/^[#\s]+//;                
+                        print $out $line;
+                        last;
+                    }
+                }            
+            }        
+            
+            if(!$found) {
+                if($line !~ /^#/) { print $out "#$line"; }
+                else { print $out $line; }
+            }        
+        }
+        
+        close $in;
+        close $out;
+        
+        rename $g_locale_gen . '.tmp', $g_locale_gen;
+        
+        `locale-gen > /dev/null 2>&1`;
+        
+        my $locale_default_stripped = $locale_default;
+        $locale_default_stripped =~ s/\s+//;
+        
+        `echo "LANG=$locale_default" > /etc/locale.conf`;
+        
+        # setup hardware clock
+        my $localetime = $localetimecb->get();
+        if($localetime) {
+            `hwclock --systohc --localtime`;
+        }
+        else {
+            `hwclock --systohc --utc`;
+        }
+        
+        # setup kernel modules
+        
+        # setup daemons    
+        
+        # create initial ramdisk
+        `mkinitcpio -p linux`;
+        
+        # configure bootloader
+        given($g_bootloader) {
+            when('syslinux') {
+                `/usr/sbin/syslinux-install_update -iam`;
+            }        
+            when('grub2') {
+                `grub-install /dev/sda`;
+                `cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo`;
+                `grub-mkconfig -o /boot/grub/grub.cfg`;
+            }        
+        }    
+        
+        # setup root password
+        #$cui->leave_curses();    
+        #system('passwd');
+        #$cui->reset_curses();    
+    
+        # exit chroot        
     }
-    
-    # setup kernel modules
-    
-    # setup daemons    
-    
-    # create initial ramdisk
-    `mkinitcpio -p linux`;
-    
-    # configure bootloader
-    given($g_bootloader) {
-        when('syslinux') {
-            `/usr/sbin/syslinux-install_update -iam`;
-        }        
-        when('grub2') {
-            `grub-install /dev/sda`;
-            `cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo`;
-            `grub-mkconfig -o /boot/grub/grub.cfg`;
-        }        
-    }    
-    
-    # setup root password
-    #$cui->leave_curses();    
-    #system('passwd');
-    #$cui->reset_curses();    
-    
-    # exit chroot
-    `exit(0)`;  # FIXME  
 }
 
 #=======================================================================
