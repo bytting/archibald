@@ -467,7 +467,8 @@ sub IS_nav_apply
 {
     use vars qw(@g_partition_table $g_bootloader);
     
-    my $win = shift;
+    my $bbox = shift;
+    my $win = $bbox->parent;
     my $info = $win->getobj('info');
     my $bootloaderlist = $win->getobj('bootloaderlist');
     my $wirelesstoolscb = $win->getobj('wirelesstoolscb');
@@ -544,7 +545,7 @@ sub IS_nav_apply
         `pacstrap /mnt wpa_supplicant wpa_actiond`;
     }
     
-    $info->text("Installation was successful, now go to \'Configure the new system\' to prepare the system");
+    $info->text("Installation was successful");
 }
 
 #=======================================================================
