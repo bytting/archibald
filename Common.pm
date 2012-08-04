@@ -21,12 +21,19 @@
 use strict;
 use warnings;
 
-our ($g_keymap_directory, $g_keymap_extension, $g_bootloader, @g_partition_table, $g_mirrorlist);
+our ($g_keymap, $g_keymap_directory, $g_keymap_extension, $g_bootloader, @g_partition_table, $g_mirrorlist, $g_timezone_directory, $g_locale_gen, $g_rc_conf);
 
+$g_keymap = 'us';
 $g_keymap_directory = '/usr/share/kbd/keymaps/';
 $g_keymap_extension = '.map.gz';
 
 $g_mirrorlist = '/etc/pacman.d/mirrorlist';
+
+$g_timezone_directory = '/usr/share/zoneinfo/';
+
+$g_locale_gen = '/etc/locale.gen';
+
+$g_rc_conf = '/etc/rc.conf';
 
 #=======================================================================
 1;

@@ -43,5 +43,20 @@ sub find_files_deep
     return (0, sort @files);
 }
 
+sub find_zoneinfo
+{
+    my $dir = shift;    
+    
+    return (1, ()) unless -d $dir;
+    
+    my @entries;
+    my $map_finder = sub {
+        return unless /^[A-Z]/;
+        push @entries, $File::Find::name;        
+    };
+    find($map_finder, $dir);
+    return (0, sort @entries);
+}
+
 #=======================================================================
 1;

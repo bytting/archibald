@@ -63,6 +63,8 @@ sub CK_focus
 
 sub CK_nav_apply
 {
+    use vars qw($g_keymap);
+    
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
@@ -71,12 +73,12 @@ sub CK_nav_apply
     
     return unless defined($km);
     
-    $km = (split(/\//, $km))[-1];
+    $g_keymap = (split(/\//, $km))[-1];
     
-    `loadkeys $km`;
+    `loadkeys $g_keymap`;
     
-    if($?) { $info->text("Loading keymap $km failed. See log for details"); }
-    else { $info->text("Keymap $km loaded successfully"); }    
+    if($?) { $info->text("Loading keymap $g_keymap failed. See log for details"); }
+    else { $info->text("Keymap $g_keymap loaded successfully"); }    
 }
 
 #=======================================================================
@@ -102,8 +104,7 @@ sub CN_focus
         }
     }
         
-    $iflist->values(\@values);        
-    $info->text('Configure network...');
+    $iflist->values(\@values);            
 }
 
 sub CN_nav_updown
@@ -310,6 +311,7 @@ sub SMP_nav_focus
 sub SMP_nav_add
 {
     use vars qw(@g_partition_table);
+    
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');    
@@ -321,8 +323,7 @@ sub SMP_nav_add
     push @g_partition_table, $entry;
     
     $parttable->values(\@g_partition_table);
-    $parttable->draw(0);
-    $parttable->focusable(0);
+    $parttable->draw(0);    
     $devicelist->focus;    
 }
 
@@ -362,11 +363,14 @@ sub SMP_nav_clear
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($devicelist, $parttable) = ($win->getobj('devicelist'), $win->getobj('parttable'));
+    my ($partlist, $mountlist, $fslist) = ($win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'));
     
+    $partlist->clear_selection();
+    $mountlist->clear_selection();
+    $fslist->clear_selection();
     @partition_table = ();
     $parttable->values(\@partition_table);
-    $parttable->draw(0);
-    $parttable->focusable(0);
+    $parttable->draw(0);    
     $devicelist->focus;
 }
 
@@ -400,8 +404,7 @@ sub SM_focus
         $prev = $_;
     }
     
-    $mirrorlist->values(map { "$_ - $mirrors{$_}" } keys %mirrors);
-    $info->text('Select the mirrors you want to enable');
+    $mirrorlist->values(map { "$mirrors{$_} - $_" } keys %mirrors);    
 }
 
 sub SM_nav_apply
@@ -423,8 +426,8 @@ sub SM_nav_apply
             next;
         }
         $found = 0;
-        foreach(@selected) {
-            $_ =~ s/\s.*$//;
+        foreach(@selected) {            
+            $_ = (split(/\s/, $_))[-1];        
             if(index($line, $_) != -1) {
                 $found = 1;
                 $line =~ s/^[#\s]+//;                
@@ -460,13 +463,14 @@ sub IS_focus
     $bootloaderlist->values(['grub2', 'syslinux']);
 }
 
-sub IS_nav_go
+sub IS_nav_apply
 {
     use vars qw(@g_partition_table $g_bootloader);
     
     my $win = shift;
     my $info = $win->getobj('info');
     my $bootloaderlist = $win->getobj('bootloaderlist');
+    my $wirelesstoolscb = $win->getobj('wirelesstoolscb');
         
     if(!@g_partition_table) {
         $info->text('Configuration is empty. Please set up a disk configuration in \'Select mount points and filesystem\' first');
@@ -534,7 +538,13 @@ sub IS_nav_go
     
     `genfstab -p /mnt >> /mnt/etc/fstab`;
     
-    $info->text("Installation was sucessful, now go to \'Configure the new system\' to prepare the system");
+    my $wirelesstools = $wirelesstoolscb->get();
+    if($wirelesstools) {
+        `pacstrap /mnt wireless_tools netcfg`;
+        `pacstrap /mnt wpa_supplicant wpa_actiond`;
+    }
+    
+    $info->text("Installation was successful, now go to \'Configure the new system\' to prepare the system");
 }
 
 #=======================================================================
@@ -543,16 +553,212 @@ sub IS_nav_go
 
 sub CS_focus
 {
-    use vars qw($g_bootloader);
+    use vars qw($g_timezone_directory $g_locale_gen);
     
     my $win = shift;
     my $info = $win->getobj('info');
-    my $hostnameentry = $win->getobj('hostname');
+    my $timezonelist = $win->getobj('timezonelist');    
+    
+    # populate timezones    
+    my ($err, @timezones) = find_zoneinfo($g_timezone_directory);
+    if($err) {
+        $info->text('No timezones found');
+        return;
+    }
+    
+    foreach (@timezones) {
+        s/^$g_timezone_directory//;        
+    }
+    
+    $timezonelist->values(\@timezones);
+    
+    # populate locale.gen
+    my $localelist = $win->getobj('localelist');
+    my $localelist_default = $win->getobj('localelist_default');
+    
+    unless(-e $g_locale_gen) {
+        $info->text("The file $g_locale_gen was not found");
+        return;
+    }
+    
+    open FILE, $g_locale_gen;
+    my @content = <FILE>;
+    close FILE;
+    my @locales;
+    foreach (@content) {
+        if(/^#*[a-z]{2,3}_/) {
+            s/^#*//;
+            push @locales, $_;
+        }        
+    }
+    
+    $localelist->values(\@locales);
+    $localelist_default->values(\@locales);    
+}
+
+sub CS_nav_apply
+{
+    use vars qw($g_bootloader $g_keymap);
+    
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $cui = $win->parent;
+    my $info = $win->getobj('info');    
+    my $timezonelist = $win->getobj('timezonelist');
+    my $localelist = $win->getobj('localelist');
+    my $localelist_default = $win->getobj('localelist_default');
+    my $localetimecb = $win->getobj('localetimecb');
     
     if(!defined($g_bootloader)) {
         $info->text('You must select a bootloader in \'Install base system\' first');
         return;
     }
+        
+    my $timezone = $timezonelist->get();
+    
+    # setup vconsole.conf
+    `echo "KEYMAP=$g_keymap" > /etc/vconsole.conf`;
+    `echo "FONT=" >> /etc/vconsole.conf`;
+    `echo "FONT_MAP=" >> /etc/vconsole.conf`;
+    
+    # setup timezone
+    `echo "$timezone" > /etc/timezone`;
+    `ln -s /usr/share/zoneinfo/$timezone /etc/localtime`;
+    
+    # setup locale
+    my @selected = $localelist->get();
+    my $locale_default = $localelist_default->get();
+    my $found;
+    
+    open (my $in, "<", $g_locale_gen);
+    open (my $out, ">", $g_locale_gen . '.tmp');    
+    
+    while(my $line = <$in>) {
+        $found = 0;
+        if ($line =~ /^#*[a-z]{2,3}_/) {            
+            foreach(@selected) {                
+                if(index($line, $_) != -1 or index($line, $locale_default) != -1) {
+                    $found = 1;
+                    $line =~ s/^[#\s]+//;                
+                    print $out $line;
+                    last;
+                }
+            }            
+        }        
+        
+        if(!$found) {
+            if($line !~ /^#/) { print $out "#$line"; }
+            else { print $out $line; }
+        }        
+    }
+    
+    close $in;
+    close $out;
+    
+    rename $g_locale_gen . '.tmp', $g_locale_gen;
+    
+    `locale-gen > /dev/null 2>&1`;
+    
+    my $locale_default_stripped = $locale_default;
+    $locale_default_stripped =~ s/\s+//;
+    
+    `echo "LANG=$locale_default" > /etc/locale.conf`;
+    
+    # setup hardware clock
+    my $localetime = $localetimecb->get();
+    if($localetime) {
+        `hwclock --systohc --localtime`;
+    }
+    else {
+        `hwclock --systohc --utc`;
+    }
+    
+    # setup kernel modules
+    
+    # setup daemons    
+    
+    # create initial ramdisk
+    `mkinitcpio -p linux`;
+    
+    # configure bootloader
+    given($g_bootloader) {
+        when('syslinux') {
+            `/usr/sbin/syslinux-install_update -iam`;
+        }        
+        when('grub2') {
+            `grub-install /dev/sda`;
+            `cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo`;
+            `grub-mkconfig -o /boot/grub/grub.cfg`;
+        }        
+    }    
+    
+    # setup root password
+    $cui->leave_curses();    
+    system('passwd');
+    $cui->reset_curses();    
+    
+    # exit chroot
+    `exit(0)`;    
+}
+
+#=======================================================================
+# Callbacks - Configure networking
+#=======================================================================
+
+sub CNET_focus
+{
+    my $win = shift;
+    my $info = $win->getobj('info');            
+    my $iflist = $win->getobj('interfacelist');
+    
+    my @values;    
+    my @ipc = `ip addr`;    
+    
+    for (@ipc) {
+        if ( /^\d+:\s*(\w+).*state\s(\w+)/ ) {        
+            my ($if, $state) = ($1, $2);
+            if($if eq 'lo') {
+                next;
+            }
+            push @values, "$if ($state)";            
+        }
+    }
+        
+    $iflist->values(\@values);            
+}
+
+sub CNET_staticip_changed
+{
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');        
+    my $ipentry = $win->getobj('ipentry');
+    my $domainentry = $win->getobj('domainentry');
+    
+    
+    my $state = $bbox->get();
+    if($state) {
+        $ipentry->title('IP Address *');
+        $domainentry->title('Domain *');
+    }
+    else {
+        $ipentry->title('IP Address');
+        $domainentry->title('Domain');
+    }
+}
+
+sub CNET_nav_apply
+{
+    use vars qw($g_rc_conf);
+    
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');    
+    my $hostnameentry = $win->getobj('hostnameentry');
+    my $staticipcb = $win->getobj('staticipcb');
+    my $interfacelist = $win->getobj('interfacelist');
+    my $ipentry = $win->getobj('ipentry');
+    my $domainentry = $win->getobj('domainentry');
     
     my $hostname = $hostnameentry->get();
     
@@ -561,34 +767,44 @@ sub CS_focus
         return;
     }
     
+    my $interface = $interfacelist.get();
+    $interface =~ /(.*)\s/;
+    $interface = $1;    
+    my $staticip = $staticipcb->get();
+    my $ip = $ipentry->get();
+    my $domain = $domainentry->get();
+    
     # chroot into system
     `arch-chroot /mnt > /dev/null 2>&1`;
     
     # setup hostname
-    `echo $hostname > /etc/hostname`;
+    `echo "$hostname" > /etc/hostname`;
+    
     # add hostname to /etc/hosts
+    `echo "127.0.0.1    localhost.localdomain   localhost   $hostname" > /etc/hosts`;
+    `echo "::1          localhost.localdomain   localhost   $hostname" >> /etc/hosts`;
     
-    # setup vconsole.conf
+    if($staticip) {
+        `echo "$ip  $hostname.$domain   $hostname" >> /etc/hosts`;
+    }
     
-    # setup timezone
+    open (my $in, "<", $g_rc_conf);
+    open (my $out, ">", $g_rc_conf . '.tmp');    
     
-    # setup locale
+    while(my $line = <$in>) {        
+        if ($line =~ /^interface=/) {            
+            print $out $line . $interface;
+        }
+        else {
+            print $out $line;
+        }
+    }
     
-    # setup hardware clock
+    close $in;
+    close $out;
     
-    # setup kernel modules
-    
-    # setup daemons
-    
-    # configure network
-    
-    # create initial ramdisk
-    
-    # configure bootloader
-    
-    # setup root password
-    
-    # unmount and exit chroot
+    # exit chroot
+    `exit(0)`;
 }
 
 #=======================================================================
@@ -617,16 +833,20 @@ sub RS_focus
     #my $info = $this->getobj('info');    
 }
 
+sub RS_nav_yes
+{    
+    # unmount
+    `umount /mnt/{boot,home,dev,var,} > /dev/null 2>&1`;
+    
+    `reboot`;
+}
+
 #=======================================================================
 # Callbacks - Quit
 #=======================================================================
 
 sub Q_focus
-{
-    my $win = shift;
-    my $info = $win->getobj('info');
-    
-    $info->text('Are you sure?');
+{    
 }
 
 #=======================================================================
