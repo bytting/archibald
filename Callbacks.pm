@@ -618,6 +618,8 @@ sub CS_nav_apply
         
     my $timezone = $timezonelist->get();
     
+    $info->text('Installing system. This can take a few minutes...');
+    
     my $pid;
     if($pid = fork) {
         waitpid($pid, 0);
@@ -625,13 +627,14 @@ sub CS_nav_apply
     else {
         # child    
     
-        `arch-chroot /mnt > /dev/null 2>&1`;
+        #`arch-chroot /mnt > /dev/null 2>&1`;
+        chroot '/mnt';
         
         # setup vconsole.conf
         `echo "KEYMAP=$g_keymap" > /etc/vconsole.conf`;
         `echo "FONT=" >> /etc/vconsole.conf`;
         `echo "FONT_MAP=" >> /etc/vconsole.conf`;
-        
+=pod
         # setup timezone
         `echo "$timezone" > /etc/timezone`;
         `ln -s /usr/share/zoneinfo/$timezone /etc/localtime`;
@@ -708,8 +711,11 @@ sub CS_nav_apply
         #system('passwd');
         #$cui->reset_curses();    
     
-        # exit chroot        
+        # exit chroot
+=cut
     }
+    
+    $info->text('Installation was a success');
 }
 
 #=======================================================================
