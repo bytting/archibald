@@ -200,7 +200,7 @@ sub SMP_focus
     
     for (@ipc) {
         if (/^Disk.+bytes$/) {
-            /(\/dev\/\w+):.+\s(\d+)\sbytes$/;            
+            /(\/dev\/\w+):.+\s(\d+)\sbytes$/;  # FIXME          
             $disks{$1} = $2;
         }
     }
@@ -489,7 +489,7 @@ sub IS_nav_apply
     my $root_ok = 0;
     foreach(@g_partition_table) {
         my ($part, $mount, $fs) = split(/:/);
-        if($mount == 'root') {            
+        if($mount eq 'root') {            
             `mount $part /mnt > /dev/null 2>&1`;
             $root_ok = 1;
         }
@@ -521,6 +521,7 @@ sub IS_nav_apply
                 `mkdir -p /mnt/var > /dev/null 2>&1`;
                 `mount $part /mnt/var > /dev/null 2>&1`;
             }
+            when ('swap') {}
             default {
                $info->text("Unsupported mount point found ($mount). See log for details");
                print STDERR "Mount point $mount not supported\n";
@@ -617,6 +618,8 @@ sub CS_nav_apply
         
     my $timezone = $timezonelist->get();
     
+    # FIXME (chroot)
+    
     # setup vconsole.conf
     `echo "KEYMAP=$g_keymap" > /etc/vconsole.conf`;
     `echo "FONT=" >> /etc/vconsole.conf`;
@@ -694,12 +697,12 @@ sub CS_nav_apply
     }    
     
     # setup root password
-    $cui->leave_curses();    
-    system('passwd');
-    $cui->reset_curses();    
+    #$cui->leave_curses();    
+    #system('passwd');
+    #$cui->reset_curses();    
     
     # exit chroot
-    `exit(0)`;    
+    `exit(0)`;  # FIXME  
 }
 
 #=======================================================================
@@ -767,16 +770,16 @@ sub CNET_nav_apply
         $info->text('You must select a hostname first');
         return;
     }
-    
+
     my $interface = $interfacelist.get();
     $interface =~ /(.*)\s/;
     $interface = $1;    
     my $staticip = $staticipcb->get();
     my $ip = $ipentry->get();
     my $domain = $domainentry->get();
-    
+
     # chroot into system
-    `arch-chroot /mnt > /dev/null 2>&1`;
+    `arch-chroot /mnt > /dev/null 2>&1`; # FIXME
     
     # setup hostname
     `echo "$hostname" > /etc/hostname`;
@@ -805,7 +808,7 @@ sub CNET_nav_apply
     close $out;
     
     # exit chroot
-    `exit(0)`;
+    `exit(0)`; # FIXME
 }
 
 #=======================================================================
