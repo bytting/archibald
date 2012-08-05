@@ -48,15 +48,14 @@ sub run()
     $win{"MM"}->add('nav', 'Buttonbox', -y => 1, -vertical => 1,
         -buttons  => [
             { -label => 'Configure keymap for the live system', -value => 'ck', -onpress => sub { $win{'CK'}->focus } },
-            { -label => 'Configure network for the live system', -value => 'cn', -onpress => sub { $win{'CN'}->focus } },
-            { -label => 'Prepare hard drive', -value => 'phd', -onpress => sub { $win{'PHD'}->focus } },
+            { -label => 'Configure network for the live system', -value => 'cn', -onpress => sub { $win{'CN'}->focus } },            
             { -label => 'Select mount points and filesystem *', -value => 'smp', -onpress => sub { $win{'SMP'}->focus } },
             { -label => 'Select installation mirrors', -value => 'sm', -onpress => sub { $win{'SM'}->focus } },
-            { -label => 'Install base system *', -value => 'is', -onpress => sub { $win{'IS'}->focus } },
+            { -label => 'Select packages *', -value => 'sp', -onpress => sub { $win{'SP'}->focus } },
             { -label => 'Configure the new system *', -value => 'cs', -onpress => sub { $win{'CS'}->focus } },
             { -label => 'Configure networking', -value => 'cnet', -onpress => sub { $win{'CNET'}->focus } },
-            { -label => 'Show error log', -value => 'l', -onpress => sub { $win{'L'}->focus } },
-            { -label => 'Reboot into installed system', -value => 'rs', -onpress => sub { $win{'RS'}->focus } },
+            { -label => 'Install', -value => 'is', -onpress => sub { $win{'IS'}->focus } },
+            { -label => 'Show error log', -value => 'l', -onpress => sub { $win{'L'}->focus } },            
             { -label => 'Quit', -value => 'q', -onpress => sub { $win{'Q'}->focus } }
         ]
     );    
@@ -94,25 +93,7 @@ sub run()
             { -label => '<Disable>', -value => 'disable', -onpress => \&CN_nav_updown },
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
-    );    
- 
-    #=======================================================================
-    # UI - Prepare hard drive
-    #=======================================================================
-    
-    $win{'PHD'} = $cui->add(undef, 'Window', -title => 'Archibald: Prepare hard drive', %win_args, -onFocus => \&PHD_focus);
-    
-    $win{'PHD'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -text => 'CAREFUL: This may erase data on existing partitions');
-    
-    $win{'PHD'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available disks');
-    
-    $win{'PHD'}->add('nav', 'Buttonbox', -y => -1,
-        -buttons => [
-            { -label => '<Format with cfdisk>', -value => 'cfdisk', -onpress => \&PHD_nav_format },
-            { -label => '<Format with cgdisk (gpt)>', -value => 'cgdisk', -onpress => \&PHD_nav_format },
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
-        ]
-    );    
+    );        
     
     #=======================================================================
     # UI - Select mount points and filesystem
@@ -122,28 +103,22 @@ sub run()
 
     $win{'SMP'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1);
         
-    $win{'SMP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 5, -vscrollbar => 'right', -border => 1, -title => 'Available disks',
-        -onchange => \&SMP_devicelist_change,
-        -onFocus => \&SMP_devicelist_focus);
-    
-    $win{'SMP'}->add('partlist', 'Radiobuttonbox', -x => 0, -y => 7, -width => 25, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Partitions',
-        -onchange => \&SMP_partlist_change,
-        -onFocus => \&SMP_partlist_focus);
+    $win{'SMP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 20, -height => 5, -vscrollbar => 'right', -border => 1, -title => 'Available disks',
+        -onchange => \&SMP_devicelist_change, -onFocus => \&SMP_devicelist_focus);
 
-    $win{'SMP'}->add('mountlist', 'Radiobuttonbox', -x => 25, -y => 7, -width => 25, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Mount points',
-        -onchange => \&SMP_mountlist_change,
-        -onFocus => \&SMP_mountlist_focus);
+    $win{'SMP'}->add('mountlist', 'Radiobuttonbox', -x => 20, -y => 2, -width => 20, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Mount points',        
+        -onchange => \&SMP_mountlist_change, -onFocus => \&SMP_mountlist_focus, -values => ['boot', 'root', 'swap', 'home', 'var', 'dev']);
         
-    $win{'SMP'}->add('fslist', 'Radiobuttonbox', -x => 50, -y => 7, -width => 25, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
-        -onchange => \&SMP_fslist_change,
-        -onFocus => \&SMP_fslist_focus);
+    $win{'SMP'}->add('fslist', 'Radiobuttonbox', -x => 40, -y => 2, -width => 20, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
+        -onchange => \&SMP_fslist_change, -onFocus => \&SMP_fslist_focus, -values => ['ext2', 'ext3', 'ext4', 'swap']);
     
-    $win{'SMP'}->add('parttable', 'Listbox', -x => 0, -y => 12, -width => -1, -height => 5, -border => 1, -vscrollbar => 'right', -focusable => 0, -title => 'Current configuration');
+    $win{'SMP'}->add('partsize', 'TextEntry', -x => 60, -y => 2, -width => 20, -border => 1, -title => 'Size (MB)', -onFocus => \&SMP_partsize_focus);
+    
+    $win{'SMP'}->add('parttable', 'Listbox', -x => 0, -y => 8, -width => -1, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
     
     $win{'SMP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&SMP_nav_focus,
         -buttons => [
-            { -label => '<Add to configuration>', -value => 'add', -onpress => \&SMP_nav_add },
-            { -label => '<Apply configuration>', -value => 'apply', -onpress => \&SMP_nav_apply },
+            { -label => '<Add to configuration>', -value => 'add', -onpress => \&SMP_nav_add },            
             { -label => '<Clear>', -value => 'clear', -onpress => \&SMP_nav_clear },
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
@@ -167,20 +142,20 @@ sub run()
     );    
     
     #=======================================================================
-    # UI - Install base system
+    # UI - Select packages
     #=======================================================================
     
-    $win{'IS'} = $cui->add(undef, 'Window', -title => 'Archibald: Install base system', %win_args, -onFocus => \&IS_focus);
+    $win{'SP'} = $cui->add(undef, 'Window', -title => 'Archibald: Install base system', %win_args, -onFocus => \&SP_focus);
     
-    $win{'IS'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -text => 'Select basic packages');    
+    $win{'SP'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -text => 'Select basic packages');    
     
-    $win{'IS'}->add('bootloaderlist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Available bootloaders');
+    $win{'SP'}->add('bootloaderlist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Available bootloaders');
     
-    $win{'IS'}->add('wirelesstoolscb', 'Checkbox', -x => 1, -y => 8, -label => 'Install wireless tools');
+    $win{'SP'}->add('wirelesstoolscb', 'Checkbox', -x => 1, -y => 8, -label => 'Install wireless tools');
     
-    $win{'IS'}->add('nav', 'Buttonbox', -y => -1,
+    $win{'SP'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Apply>', -value => 'apply', -onpress => \&IS_nav_apply },
+            { -label => '<Apply>', -value => 'apply', -onpress => \&SP_nav_apply },
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
     );    
@@ -196,7 +171,7 @@ sub run()
     $win{'CS'}->add('timezonelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 30, -height => 8, -vscrollbar => 'right', -border => 1, -title => 'Timezone *');    
     $win{'CS'}->add('localelist', 'Listbox', -x => 31, -y => 2, -width => 30, -height => 8, -vscrollbar => 'right', -border => 1, -multi => 1, -title => 'Locales *');
         
-    $win{'CS'}->add('localelist_default', 'Radiobuttonbox', -x => 0, -y => 10, -width => 30, -height => 1, -border => 1, -title => 'Language *');    
+    $win{'CS'}->add('localelist_lang', 'Radiobuttonbox', -x => 0, -y => 10, -width => 30, -height => 1, -border => 1, -title => 'Language *');    
     $win{'CS'}->add('localetimecb', 'Checkbox', -x => 31, -y => 11, -label => 'Use localtime');
         
     $win{'CS'}->add('rootpassword1', 'PasswordEntry', -x => 0, -y => 13, -width => 30, -border => 1, -title => 'Root password *');
@@ -239,7 +214,7 @@ sub run()
     
     $win{'L'} = $cui->add(undef, 'Window', -title => 'Archibald: Showing recent error messages', %win_args, -onFocus => \&L_focus);
     
-    $win{'L'}->add('viewer', 'TextViewer', -y => 1, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
+    $win{'L'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
     
     $win{'L'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [            
@@ -251,14 +226,15 @@ sub run()
     # UI - Reboot system
     #=======================================================================
     
-    $win{'RS'} = $cui->add(undef, 'Window', -title => 'Archibald: Reboot system', %win_args, -onFocus => \&RS_focus);
+    $win{'IS'} = $cui->add(undef, 'Window', -title => 'Archibald: Reboot system', %win_args, -onFocus => \&IS_focus);
     
-    $win{'RS'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1, -text => 'Are you sure?');    
+    $win{'IS'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
     
-    $win{'RS'}->add('nav', 'Buttonbox', -y => -1,
+    $win{'IS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Yes>', -value => 'yes', -onpress => \&RS_nav_yes },
-            { -label => '<No>', -value => 'no', -onpress => sub { $win{'MM'}->focus } }
+            { -label => '<Install base system>', -value => 'ibs', -onpress => \&IS_nav_install },
+            { -label => '<Configure base system>', -value => 'cbs', -onpress => \&IS_nav_configure },
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
     );    
     

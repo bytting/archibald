@@ -75,6 +75,8 @@ sub CK_nav_apply
     
     $g_keymap = (split(/\//, $km))[-1];
     
+    
+    
     `loadkeys $g_keymap`;
     
     if($?) { $info->text("Loading keymap $g_keymap failed. See log for details"); }
@@ -132,53 +134,6 @@ sub CN_nav_updown
 }
 
 #=======================================================================
-# Callbacks - Prepare hard drive
-#=======================================================================
-
-sub PHD_focus
-{    
-    my $win = shift;    
-    my $devicelist = $win->getobj('devicelist');
-    
-    my (@values, %labels);
-    my @ipc = `fdisk -l`;    
-    
-    for (@ipc) {
-        if (/^Disk\s+\/dev/) {        
-            push @values, "$_";
-            $labels{$_} = "$_";
-        }
-    }
-        
-    $devicelist->values(\@values);
-    $devicelist->labels(\%labels);    
-}
-
-sub PHD_nav_format
-{
-    my $bbox = shift;
-    my $win = $bbox->parent;
-    my $info = $win->getobj('info');
-    my $cui = $bbox->parent->parent;
-    my $client = $bbox->get();    
-    my $devicelist = $bbox->parent->getobj('devicelist');
-    my $disk = (split(/\s/, $devicelist->get()))[1];    
-    $disk =~ s/:$//;
-    
-    `which $client`;
-    if($?) {
-        $info->text("The program $client does not appear to be installed");
-        return;
-    }
-    
-    $cui->leave_curses();    
-    
-    system("$client $disk");    
-    
-    $cui->reset_curses();
-}
-
-#=======================================================================
 # Callbacks - Select mount points and filesystem
 #=======================================================================
 
@@ -186,12 +141,10 @@ sub SMP_focus
 {
     my $win = shift;
     my $info = $win->getobj('info');
-    my $devicelist = $win->getobj('devicelist');
-    my $partlist = $win->getobj('partlist');
+    my $devicelist = $win->getobj('devicelist');    
     my $mountlist = $win->getobj('mountlist');
     my $fslist = $win->getobj('fslist');
     
-    $partlist->clear_selection();
     $mountlist->clear_selection();
     $fslist->clear_selection();
     
@@ -213,24 +166,10 @@ sub SMP_focus
 sub SMP_devicelist_change
 {
     my $bbox = shift;
-    my $win = $bbox->parent;
-    my ($info, $devicelist, $partlist) = ($win->getobj('info'), $win->getobj('devicelist'), $win->getobj('partlist'));    
-    my $device = $devicelist->get();
+    my $win = $bbox->parent;    
+    my $mountlist = $win->getobj('mountlist');
     
-    return unless defined($device);    
-    
-    my @partitions;
-    my @ipc = `fdisk -l`;    
-        
-    for (@ipc) {
-        if (/^$device\d+/) {            
-            /(\S+)\s/;            
-            push @partitions, $1;
-        }
-    }
-    
-    $partlist->values(\@partitions);
-    $partlist->focus;        
+    $mountlist->focus;    
 }
 
 sub SMP_devicelist_focus
@@ -242,33 +181,12 @@ sub SMP_devicelist_focus
     $info->text('Select a device...');
 }
 
-sub SMP_partlist_change
-{
-    my $bbox = shift;
-    my $win = $bbox->parent;
-    my $info = $win->getobj('info');    
-    my $mountlist = $win->getobj('mountlist');
-    
-    $mountlist->values(['boot', 'swap', 'root', 'home', 'dev', 'var']);
-    $mountlist->focus;    
-}
-
-sub SMP_partlist_focus
-{
-    my $bbox = shift;
-    my $win = $bbox->parent;
-    my $info = $win->getobj('info');
-    
-    $info->text('Select a partition...');
-}
-
 sub SMP_mountlist_change
 {
     my $bbox = shift;
     my $win = $bbox->parent;    
     my $fslist = $win->getobj('fslist');
     
-    $fslist->values(['ext2', 'ext3', 'ext4', 'swap']);
     $fslist->focus;    
 }
 
@@ -285,9 +203,9 @@ sub SMP_fslist_change
 {
     my $bbox = shift;
     my $win = $bbox->parent;    
-    my $nav = $win->getobj('nav');
-    
-    $nav->focus;    
+    my $partsize = $win->getobj('partsize');
+        
+    $partsize->focus;    
 }
 
 sub SMP_fslist_focus
@@ -297,6 +215,15 @@ sub SMP_fslist_focus
     my $info = $win->getobj('info');
     
     $info->text('Select a file system type...');
+}
+ 
+sub SMP_partsize_focus
+{
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');
+    
+    $info->text('Enter a partition size in MB...');
 }
  
 sub SMP_nav_focus
@@ -315,46 +242,19 @@ sub SMP_nav_add
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');    
-    my ($devicelist, $partlist, $mountlist, $fslist, $parttable) = (
-        $win->getobj('devicelist'), $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('parttable')
+    my ($devicelist, $mountlist, $fslist, $partsize, $parttable) = (
+        $win->getobj('devicelist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
     );                
     
-    my $entry = $partlist->get() . ':' . $mountlist->get() . ':' . $fslist->get();
+    my $entry = $devicelist->get() . ':' . $mountlist->get() . ':' . $fslist->get() . ':' . $partsize->get();
+    
     push @g_partition_table, $entry;
     
     $parttable->values(\@g_partition_table);
-    $parttable->draw(0);    
-    $devicelist->focus;    
-}
-
-sub SMP_nav_apply
-{
-    my $bbox = shift;
-    my $win = $bbox->parent;
-    my $info = $win->getobj('info');
-    my $parttable = $win->getobj('parttable');
+    $parttable->draw(0);     
+    $devicelist->focus;
     
-    if(!@g_partition_table) {
-        $info->text('Configuration is empty. Nothing to do...');
-        return;
-    }
-    
-    foreach(@g_partition_table) {
-        my ($part, $mount, $fs) = split(/:/);
-        
-        given($fs) {
-            when ('ext2') { `mkfs.ext2 $part` }
-            when ('ext3') { `mkfs.ext3 $part` }
-            when ('ext4') { `mkfs.ext4 $part` }
-            when ('swap') { `mkswap $part && swapon $part` }
-            default {
-               $info->text("Unsupported filesystem found ($fs). See log for details");
-               print STDERR "Filesystem $fs not supported\n";
-            }
-        }        
-    }
-        
-    $info->text('Configuration applied successfully');
+    $info->text('Entry added...');
 }
 
 sub SMP_nav_clear
@@ -363,9 +263,9 @@ sub SMP_nav_clear
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($devicelist, $parttable) = ($win->getobj('devicelist'), $win->getobj('parttable'));
-    my ($partlist, $mountlist, $fslist) = ($win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'));
-    
-    $partlist->clear_selection();
+    my ($mountlist, $fslist) = ($win->getobj('mountlist'), $win->getobj('fslist'));
+        
+    $devicelist->clear_selection();
     $mountlist->clear_selection();
     $fslist->clear_selection();
     @partition_table = ();
@@ -409,52 +309,21 @@ sub SM_focus
 
 sub SM_nav_apply
 {
-    use vars qw($g_mirrorlist);
+    use vars qw($g_mirrorlist @g_mirrors);
     
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($info, $mirrorlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));            
-    my @selected = $mirrorlist->get();
-    my ($url, $found);
-        
-    open (my $in, "<", $g_mirrorlist);
-    open (my $out, ">", $g_mirrorlist . '.tmp');    
-
-    while(my $line = <$in>) {        
-        if ($line =~ /^\s*$/) {
-            print $out $line;
-            next;
-        }
-        $found = 0;
-        foreach(@selected) {            
-            $_ = (split(/\s/, $_))[-1];        
-            if(index($line, $_) != -1) {
-                $found = 1;
-                $line =~ s/^[#\s]+//;                
-                print $out $line;
-                last;
-            }
-        }
-        
-        if(!$found) {
-            if($line !~ /^#/) { print $out "#$line"; }
-            else { print $out $line; }
-        }        
-    }
+    @g_mirrors = $mirrorlist->get();
     
-    close $in;
-    close $out;
-    
-    rename $g_mirrorlist . '.tmp', $g_mirrorlist;
-    
-    $info->text('mirrorlist generated successfully');
+    $info->text('Mirror selection applied');
 }
 
 #=======================================================================
-# Callbacks - Install system
+# Callbacks - Select packages
 #=======================================================================
 
-sub IS_focus
+sub SP_focus
 {       
     my $win = shift;
     my $info = $win->getobj('info');
@@ -463,90 +332,20 @@ sub IS_focus
     $bootloaderlist->values(['grub2', 'syslinux']);
 }
 
-sub IS_nav_apply
+sub SP_nav_apply
 {
-    use vars qw(@g_partition_table $g_bootloader);
+    use vars qw($g_bootloader $g_wirelesstools);
     
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
     my $bootloaderlist = $win->getobj('bootloaderlist');
     my $wirelesstoolscb = $win->getobj('wirelesstoolscb');
-        
-    if(!@g_partition_table) {
-        $info->text('Configuration is empty. Please set up a disk configuration in \'Select mount points and filesystem\' first');
-        return;
-    }    
     
-    $g_bootloader = $bootloaderlist->get();    
+    $g_bootloader = $bootloaderlist->get();
+    $g_wirelesstools = $wirelesstoolscb->get();    
     
-    if(!defined($g_bootloader)) {
-        $info->text('You must select a bootloader first');
-        return;
-    }
-    
-    # mount partitions
-    my $root_ok = 0;
-    foreach(@g_partition_table) {
-        my ($part, $mount, $fs) = split(/:/);
-        if($mount eq 'root') {            
-            `mount $part /mnt > /dev/null 2>&1`;
-            $root_ok = 1;
-        }
-    }
-    
-    if(!$root_ok) {
-        $info->text('Configuration has no root. Please set up a root configuration in \'Select mount points and filesystem\' first');
-        return;
-    }
-    
-    foreach(@g_partition_table) {
-        my ($part, $mount, $fs) = split(/:/);
-        
-        given($mount) {
-            when ('boot') {
-                `mkdir -p /mnt/boot > /dev/null 2>&1`;
-                `mount $part /mnt/boot > /dev/null 2>&1`;
-            }            
-            when ('root') {}
-            when ('home') {
-                `mkdir -p /mnt/home > /dev/null 2>&1`;
-                `mount $part /mnt/home > /dev/null 2>&1`;
-            }
-            when ('dev') {
-                `mkdir -p /mnt/dev > /dev/null 2>&1`;
-                `mount $part /mnt/dev > /dev/null 2>&1`;
-            }
-            when ('var') {
-                `mkdir -p /mnt/var > /dev/null 2>&1`;
-                `mount $part /mnt/var > /dev/null 2>&1`;
-            }
-            when ('swap') {}
-            default {
-               $info->text("Unsupported mount point found ($mount). See log for details");
-               print STDERR "Mount point $mount not supported\n";
-            }
-        }        
-    }
-         
-    # install
-    `pacstrap /mnt base base-devel`;
-    
-    given($g_bootloader) {
-        when('syslinux') { `pacstrap /mnt syslinux` }        
-        when('grub2') { `pacstrap /mnt grub-bios` }
-        #when('grub2-EFI') { `pacstrap /mnt grub-efi-x86_64` }        
-    }
-    
-    `genfstab -p /mnt >> /mnt/etc/fstab`;
-    
-    my $wirelesstools = $wirelesstoolscb->get();
-    if($wirelesstools) {
-        `pacstrap /mnt wireless_tools netcfg`;
-        `pacstrap /mnt wpa_supplicant wpa_actiond`;
-    }
-    
-    $info->text("Installation was successful");
+    $info->text("Package selection applied");
 }
 
 #=======================================================================
@@ -576,7 +375,7 @@ sub CS_focus
     
     # populate locale.gen
     my $localelist = $win->getobj('localelist');
-    my $localelist_default = $win->getobj('localelist_default');
+    my $localelist_lang = $win->getobj('localelist_lang');
     
     unless(-e $g_locale_gen) {
         $info->text("The file $g_locale_gen was not found");
@@ -595,12 +394,12 @@ sub CS_focus
     }
     
     $localelist->values(\@locales);
-    $localelist_default->values(\@locales);    
+    $localelist_lang->values(\@locales);    
 }
 
 sub CS_nav_apply
 {
-    use vars qw($g_bootloader $g_keymap);
+    use vars qw($g_timezone @g_locales $g_locale_lang);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -608,114 +407,14 @@ sub CS_nav_apply
     my $info = $win->getobj('info');    
     my $timezonelist = $win->getobj('timezonelist');
     my $localelist = $win->getobj('localelist');
-    my $localelist_default = $win->getobj('localelist_default');
-    my $localetimecb = $win->getobj('localetimecb');
+    my $localelist_lang = $win->getobj('localelist_lang');
+    my $localetimecb = $win->getobj('localetimecb');    
+        
+    $g_timezone = $timezonelist->get();
+    @g_locales = $localelist->get();
+    $g_locale_lang = $localelist_lang->get();
     
-    if(!defined($g_bootloader)) {
-        $info->text('You must select a bootloader in \'Install base system\' first');
-        return;
-    }
-        
-    my $timezone = $timezonelist->get();
-    
-    $info->text('Installing system. This can take a few minutes...');
-    
-    my $pid;
-    if($pid = fork) {
-        waitpid($pid, 0);
-    }
-    else {
-        # child    
-    
-        #`arch-chroot /mnt > /dev/null 2>&1`;
-        chroot '/mnt';
-        
-        # setup vconsole.conf
-        `echo "KEYMAP=$g_keymap" > /etc/vconsole.conf`;
-        `echo "FONT=" >> /etc/vconsole.conf`;
-        `echo "FONT_MAP=" >> /etc/vconsole.conf`;
-=pod
-        # setup timezone
-        `echo "$timezone" > /etc/timezone`;
-        `ln -s /usr/share/zoneinfo/$timezone /etc/localtime`;
-        
-        # setup locale
-        my @selected = $localelist->get();
-        my $locale_default = $localelist_default->get();
-        my $found;
-        
-        open (my $in, "<", $g_locale_gen);
-        open (my $out, ">", $g_locale_gen . '.tmp');    
-        
-        while(my $line = <$in>) {
-            $found = 0;
-            if ($line =~ /^#*[a-z]{2,3}_/) {            
-                foreach(@selected) {                
-                    if(index($line, $_) != -1 or index($line, $locale_default) != -1) {
-                        $found = 1;
-                        $line =~ s/^[#\s]+//;                
-                        print $out $line;
-                        last;
-                    }
-                }            
-            }        
-            
-            if(!$found) {
-                if($line !~ /^#/) { print $out "#$line"; }
-                else { print $out $line; }
-            }        
-        }
-        
-        close $in;
-        close $out;
-        
-        rename $g_locale_gen . '.tmp', $g_locale_gen;
-        
-        `locale-gen > /dev/null 2>&1`;
-        
-        my $locale_default_stripped = $locale_default;
-        $locale_default_stripped =~ s/\s+//;
-        
-        `echo "LANG=$locale_default" > /etc/locale.conf`;
-        
-        # setup hardware clock
-        my $localetime = $localetimecb->get();
-        if($localetime) {
-            `hwclock --systohc --localtime`;
-        }
-        else {
-            `hwclock --systohc --utc`;
-        }
-        
-        # setup kernel modules
-        
-        # setup daemons    
-        
-        # create initial ramdisk
-        `mkinitcpio -p linux`;
-        
-        # configure bootloader
-        given($g_bootloader) {
-            when('syslinux') {
-                `/usr/sbin/syslinux-install_update -iam`;
-            }        
-            when('grub2') {
-                `grub-install /dev/sda`;
-                `cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo`;
-                `grub-mkconfig -o /boot/grub/grub.cfg`;
-            }        
-        }    
-        
-        # setup root password
-        #$cui->leave_curses();    
-        #system('passwd');
-        #$cui->reset_curses();    
-    
-        # exit chroot
-=cut
-    }
-    
-    $info->text('Installation was a success');
+    $info->text('System configuration applied');
 }
 
 #=======================================================================
@@ -766,7 +465,7 @@ sub CNET_staticip_changed
 
 sub CNET_nav_apply
 {
-    use vars qw($g_rc_conf);
+    use vars qw($g_hostname $g_interface $g_static_ip $g_ip $g_domain);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -777,51 +476,113 @@ sub CNET_nav_apply
     my $ipentry = $win->getobj('ipentry');
     my $domainentry = $win->getobj('domainentry');
     
-    my $hostname = $hostnameentry->get();
+    $g_hostname = $hostnameentry->get();
+    $g_interface = $interfacelist->get();    
+    $g_interface =~ s/\s+.*$//;    
+    $g_static_ip = $staticipcb->get();    
+    $g_ip = $ipentry->get();
+    $g_domain = $domainentry->get();
     
-    if(!defined($hostname)) {
-        $info->text('You must select a hostname first');
+    $info->text('Networking configuration applied');
+}
+
+#=======================================================================
+# Callbacks - Install
+#=======================================================================
+
+sub IS_focus
+{
+    #my $this = shift;
+    #my $info = $this->getobj('info');    
+}
+
+sub IS_nav_install
+{
+    use vars qw($g_keymap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors $g_timezone @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip $g_domain $g_disk);
+    
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $viewer = $win->getobj('viewer');
+
+    if(!defined($g_disk)) {
+        $viewer->text('Disk undefined');
         return;
     }
-
-    my $interface = $interfacelist.get();
-    $interface =~ /(.*)\s/;
-    $interface = $1;    
-    my $staticip = $staticipcb->get();
-    my $ip = $ipentry->get();
-    my $domain = $domainentry->get();
-
-    # chroot into system
-    `arch-chroot /mnt > /dev/null 2>&1`; # FIXME
     
-    # setup hostname
-    `echo "$hostname" > /etc/hostname`;
-    
-    # add hostname to /etc/hosts
-    `echo "127.0.0.1    localhost.localdomain   localhost   $hostname" > /etc/hosts`;
-    `echo "::1          localhost.localdomain   localhost   $hostname" >> /etc/hosts`;
-    
-    if($staticip) {
-        `echo "$ip  $hostname.$domain   $hostname" >> /etc/hosts`;
+    if(!defined($g_keymap)) {
+        $viewer->text('Keymap undefined');
+        return;
     }
     
-    open (my $in, "<", $g_rc_conf);
-    open (my $out, ">", $g_rc_conf . '.tmp');    
+    if(!defined($g_bootloader)) {
+        $viewer->text('Bootloader undefined');
+        return;
+    }
     
-    while(my $line = <$in>) {        
-        if ($line =~ /^interface=/) {            
-            print $out $line . $interface;
+    if($g_wirelesstools) {        
+    }
+    
+    if(!@g_partition_table) {
+        $viewer->text('Partition table is empty');
+        return;
+    }
+    
+    if(@g_mirrors) {
+        
+    }
+    
+    if(!defined($g_timezone)) {
+        
+    }
+    
+    if(!@g_locales) {
+        $viewer->text('No locales enabled');
+        return;
+    }
+    
+    if(!defined($g_locale_lang)) {
+        $viewer->text('Language locale not set');
+        return;
+    }
+    
+    if(defined($g_interface)) {
+        
+        if(!defined($g_hostname)) {
+            $viewer->text('Hostname not set');
+            return;
+        }
+        
+        if($g_static_ip) {
+            
+            if(!defined($g_ip)) {
+                
+            }
+            
+            if(!defined($g_domain)) {
+                
+            }
+        }
+    }
+    
+    my $last_mount;
+    open STAGE1, 'stage1.sh';
+    print STAGE1 "parted -s $g_disk mktable gpt\n\n";
+    foreach(@g_partition_table) {
+        my ($dsk, $mount, $fs, $size) = split /:/;
+        if(defined($last_mount)) {
+            print STAGE1 "$mount=$((   $last_mount   +   $size    ))\n";
         }
         else {
-            print $out $line;
-        }
+            print STAGE1 "$mount=$((   1   +   $size    ))\n";
+        }        
+        $last_mount = $mount;
     }
-    
-    close $in;
-    close $out;
-    
-    # exit chroot
-    `exit(0)`; # FIXME
+    close STAGE1;
+}
+
+sub IS_nav_configure
+{
+    # check all required variables
 }
 
 #=======================================================================
@@ -838,24 +599,6 @@ sub L_focus
     my @content = <FILE>; close FILE;    
     $info->text(join('', reverse(@content)));
     $nav->focus;
-}
-
-#=======================================================================
-# Callbacks - Reboot
-#=======================================================================
-
-sub RS_focus
-{
-    #my $this = shift;
-    #my $info = $this->getobj('info');    
-}
-
-sub RS_nav_yes
-{    
-    # unmount
-    `umount /mnt/{boot,home,dev,var,} > /dev/null 2>&1`;
-    
-    `reboot`;
 }
 
 #=======================================================================
