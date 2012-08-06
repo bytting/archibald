@@ -103,20 +103,20 @@ sub run()
 
     $win{'SMP'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1);
         
-    $win{'SMP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 20, -height => 5, -vscrollbar => 'right', -border => 1, -title => 'Available disks',
+    $win{'SMP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 16, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
         -onchange => \&SMP_devicelist_change, -onFocus => \&SMP_devicelist_focus);
 
-    $win{'SMP'}->add('mountlist', 'Radiobuttonbox', -x => 20, -y => 2, -width => 20, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Mount points',        
+    $win{'SMP'}->add('mountlist', 'Radiobuttonbox', -x => 16, -y => 2, -width => 16, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Mount points',        
         -onchange => \&SMP_mountlist_change, -onFocus => \&SMP_mountlist_focus);
         
-    $win{'SMP'}->add('fslist', 'Radiobuttonbox', -x => 40, -y => 2, -width => 20, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
+    $win{'SMP'}->add('fslist', 'Radiobuttonbox', -x => 32, -y => 2, -width => 16, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
         -onchange => \&SMP_fslist_change, -onFocus => \&SMP_fslist_focus, -values => ['ext2', 'ext3', 'ext4', 'swap']);
     
-    $win{'SMP'}->add('remsize', 'Label', -x => 60, -y => 2, -width => 20, -bold => 1);
+    $win{'SMP'}->add('remsize', 'Label', -x => 50, -y => 2, -width => 16, -bold => 1);
     
-    $win{'SMP'}->add('partsize', 'TextEntry', -x => 60, -y => 4, -width => 20, -border => 1, -title => 'Size (MB)', -onFocus => \&SMP_partsize_focus);
+    $win{'SMP'}->add('partsize', 'TextEntry', -x => 48, -y => 4, -width => 16, -border => 1, -title => 'Size (MB)', -onFocus => \&SMP_partsize_focus);
     
-    $win{'SMP'}->add('parttable', 'Listbox', -x => 0, -y => 8, -width => -1, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
+    $win{'SMP'}->add('parttable', 'Listbox', -x => 0, -y => 9, -width => 64, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
     
     $win{'SMP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&SMP_nav_focus,
         -buttons => [
@@ -170,14 +170,11 @@ sub run()
     
     $win{'CS'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -text => 'Marked fields are required');    
         
-    $win{'CS'}->add('timezonelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 30, -height => 8, -vscrollbar => 'right', -border => 1, -title => 'Timezone *');    
-    $win{'CS'}->add('localelist', 'Listbox', -x => 31, -y => 2, -width => 30, -height => 8, -vscrollbar => 'right', -border => 1, -multi => 1, -title => 'Locales *');
+    $win{'CS'}->add('timezonelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 35, -height => 8, -vscrollbar => 'right', -border => 1, -title => 'Timezone *');    
+    $win{'CS'}->add('localelist', 'Listbox', -x => 36, -y => 2, -width => 35, -height => 8, -vscrollbar => 'right', -border => 1, -multi => 1, -title => 'Locales *');
         
-    $win{'CS'}->add('localelist_lang', 'Radiobuttonbox', -x => 0, -y => 10, -width => 30, -height => 1, -border => 1, -title => 'Language *');    
-    $win{'CS'}->add('localetimecb', 'Checkbox', -x => 31, -y => 11, -label => 'Use localtime');
-        
-    $win{'CS'}->add('rootpassword1', 'PasswordEntry', -x => 0, -y => 13, -width => 30, -border => 1, -title => 'Root password *');
-    $win{'CS'}->add('rootpassword2', 'PasswordEntry', -x => 31, -y => 13, -width => 30, -border => 1, -title => 'Repeat root password *');
+    $win{'CS'}->add('localelist_lang', 'Radiobuttonbox', -x => 0, -y => 10, -width => 35, -height => 6, -border => 1, -title => 'Language *');    
+    $win{'CS'}->add('localetimecb', 'Checkbox', -x => 36, -y => 11, -label => 'Use localtime');    
     
     $win{'CS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
@@ -196,12 +193,12 @@ sub run()
         
     $win{'CNET'}->add('hostnameentry', 'TextEntry', -x => 0, -y => 2, -width => 30, -border => 1, -title => 'Hostname *');
     
-    $win{'CNET'}->add('staticipcb', 'Checkbox', -x => 34, -y => 3, -label => 'Use static ip', -checked => 0, -onchange => \&CNET_staticip_changed);    
-        
-    $win{'CNET'}->add('interfacelist', 'Radiobuttonbox', -x => 0, -y => 5, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available network interfaces *');
+    $win{'CNET'}->add('staticipcb', 'Checkbox', -x => 34, -y => 3, -label => 'Use static ip', -checked => 0, -onchange => \&CNET_staticip_changed);        
     
-    $win{'CNET'}->add('ipentry', 'TextEntry', -x => 0, -y => 11, -width => 30, -border => 1, -title => 'IP Address');    
-    $win{'CNET'}->add('domainentry', 'TextEntry', -x => 31, -y => 11, -width => 30, -border => 1, -title => 'Domain', -text => 'localdomain');
+    $win{'CNET'}->add('ipentry', 'TextEntry', -x => 0, -y => 5, -width => 30, -border => 1, -title => 'IP Address');    
+    $win{'CNET'}->add('domainentry', 'TextEntry', -x => 31, -y => 5, -width => 30, -border => 1, -title => 'Domain', -text => 'localdomain');
+    
+    $win{'CNET'}->add('interfacelist', 'Radiobuttonbox', -x => 0, -y => 8, -width => 61, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available network interfaces *');
     
     $win{'CNET'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
@@ -259,7 +256,7 @@ sub run()
     #=======================================================================
     
     # Bind <CTRL+Q> to quit.
-    $cui->set_binding( \&handler_quit, "\cQ" );
+    # $cui->set_binding( \&handler_quit, "\cQ" );
     
     $win{'MM'}->focus;
     $cui->mainloop;

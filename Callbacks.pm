@@ -300,6 +300,10 @@ sub SMP_nav_add
     $mountlist->values(\@g_mountpoints);
     
     $parttable->values(\@g_partition_table);
+    
+    $fslist->clear_selection();
+    $partsize->text('');
+    
     $parttable->draw(0);     
     $devicelist->focus;
     
@@ -319,12 +323,12 @@ sub SMP_nav_clear
         
     $devicelist->clear_selection();
     $mountlist->clear_selection();
-    $mountlist->values(['boot', 'root', 'swap', 'home', 'var', 'dev']);
+    @g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
+    $mountlist->values(\@g_mountpoints);
     $fslist->clear_selection();
     $partsize->text('');
     $remsize->text('');
-    @g_partition_table = ();
-    @g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
+    @g_partition_table = ();    
     $parttable->values(\@g_partition_table);
     $parttable->draw(0);    
     $devicelist->focus;
@@ -551,15 +555,17 @@ sub CNET_nav_apply
 
 sub IS_focus
 {
-    #my $this = shift;
-    #my $info = $this->getobj('info');    
+    my $win = shift;    
+    my $nav = $win->getobj('nav');
+        
+    $nav->focus;
 }
 
 sub IS_nav_make_install
 {
     use vars qw($g_keymap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
     $g_timezone $g_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
-    $g_domain $g_disk $g_rc_conf $g_locale_default);
+    $g_domain $g_disk $g_rc_conf $g_locale_default $g_install_script $g_configure_script);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -611,11 +617,13 @@ sub IS_nav_make_install
         if($g_static_ip) {
             
             if(!defined($g_ip)) {
-                
+                $viewer->text('IP address not set for static interface');
+                return;
             }
             
             if(!defined($g_domain)) {
-                
+                $viewer->text('Domain not set for static interface');
+                return;
             }
         }
     }
@@ -634,16 +642,15 @@ sub IS_nav_make_install
     }
     
     # create and generate the installer script
-    
-    my $last_mount;
-    open INST, ">install.sh";
-    
+        
+    open INST, ">$g_install_script";    
     print INST "#!/bin/bash\n\n";
     
     print INST "parted -s $g_disk mktable gpt\n\n";
     
     #max=$(( $(cat $g_disk/size) * 512 / 1024 / 1024 - 1 ))
     
+    my $last_mount;    
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         if(defined($last_mount)) {
@@ -771,18 +778,18 @@ sub IS_nav_make_install
     
     print INST "\n";
     
-    print INST "genfstab -p /mnt >> /mnt/etc/fstab\n";    
-    print INST "arch-chroot /mnt\n";
-
-    print INST "\n";
+    print INST "genfstab -p /mnt >> /mnt/etc/fstab\n";
+    
+    open STRAP, ">$g_configure_script";    
+    print STRAP "#!/bin/bash\n\n";        
     
     # setup vconsole.conf
     
-    print INST "echo \"KEYMAP=$g_keymap\" > /etc/vconsole.conf\n";
-    print INST "echo \"FONT=\" >> /etc/vconsole.conf\n";
-    print INST "echo \"FONT_MAP=\" >> /etc/vconsole.conf\n";
+    print STRAP "echo \"KEYMAP=$g_keymap\" > /etc/vconsole.conf\n";
+    print STRAP "echo \"FONT=\" >> /etc/vconsole.conf\n";
+    print STRAP "echo \"FONT_MAP=\" >> /etc/vconsole.conf\n";
     
-    print INST "\n";
+    print STRAP "\n";
     
     # setup locale
     
@@ -812,30 +819,32 @@ sub IS_nav_make_install
     close $in;
     close $out;
     
-    print INST "\n";
+    print STRAP "\n";
     
     open LOCFILE, './locale.gen';
-    print INST "cat>$g_locale_gen<<EOF\n";
+    print STRAP "cat>$g_locale_gen<<EOF\n";
     while(<LOCFILE>) {
-        print INST $_;
+        print STRAP $_;
     }
     close LOCFILE;
-    print INST "EOF\n\n";            
+    print STRAP "EOF\n\n";            
     unlink('./locale.gen');
     
-    print INST "locale-gen > /dev/null 2>&1\n";    
+    print STRAP "locale-gen > /dev/null 2>&1\n";    
             
-    print INST "echo \"LANG=$g_locale_lang\" > /etc/locale.conf\n";
+    print STRAP "echo \"LANG=$g_locale_lang\" > /etc/locale.conf\n";
         
     # setup hostname/hosts
     
-    print INST "echo \"$g_hostname\" > /etc/hostname\n";
-    
-    print INST "echo \"127.0.0.1    localhost.localdomain   localhost   $g_hostname\" > /etc/hosts\n";
-    print INST "echo \"::1          localhost.localdomain   localhost   $g_hostname\" >> /etc/hosts\n";
-    
-    if($g_static_ip) {
-        print INST "echo \"\$ip  \$hostname.\$domain   \$hostname\" >> /etc/hosts\n";
+    if(defined($g_hostname)) {
+        print STRAP "echo \"$g_hostname\" > /etc/hostname\n";
+        
+        print STRAP "echo \"127.0.0.1    localhost.localdomain   localhost   $g_hostname\" > /etc/hosts\n";
+        print STRAP "echo \"::1          localhost.localdomain   localhost   $g_hostname\" >> /etc/hosts\n";
+        
+        if($g_static_ip) {
+            print STRAP "echo \"\$ip  \$hostname.\$domain   \$hostname\" >> /etc/hosts\n";
+        }
     }
     
     # setup rc.conf
@@ -844,7 +853,7 @@ sub IS_nav_make_install
     open (my $rcout, ">", './rc.conf');        
     
     while(my $line = <$rcin>) {        
-        if ($line =~ /^interface=/) {            
+        if ($line =~ /^interface=/ and defined($g_interface)) {            
             print $rcout "interface=$g_interface\n";
         }
         else {
@@ -856,42 +865,52 @@ sub IS_nav_make_install
     close $rcout;
     
     open RCFILE, './rc.conf';
-    print INST "cat>$g_rc_conf <<EOF\n";
+    print STRAP "cat>$g_rc_conf <<EOF\n";
     while(<RCFILE>) {
-        print INST $_;
+        print STRAP $_;
     }
     close RCFILE;
-    print INST "EOF\n\n";            
+    print STRAP "EOF\n\n";            
     unlink('./rc.conf');
    
     # setup hardware clock
         
     if($g_localetime) {
-        print INST "hwclock --systohc --localtime\n";
+        print STRAP "hwclock --systohc --localtime\n";
     }
     else {
-        print INST "hwclock --systohc --utc\n";
+        print STRAP "hwclock --systohc --utc\n";
     }
    
     # create initial ramdisk
-    print INST "mkinitcpio -p linux\n";
+    print STRAP "mkinitcpio -p linux\n";
     
     # configure bootloader
     
     given($g_bootloader) {
         when('syslinux') {
-            print INST "/usr/sbin/syslinux-install_update -iam\n";
+            print STRAP "/usr/sbin/syslinux-install_update -iam\n";
         }        
         when('grub2') {
-            print INST "grub-install $g_disk\n";
-            print INST "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo\n";
-            print INST "grub-mkconfig -o /boot/grub/grub.cfg\n";
+            print STRAP "grub-install $g_disk\n";
+            print STRAP "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo\n";
+            print STRAP "grub-mkconfig -o /boot/grub/grub.cfg\n";
         }        
     }    
         
-    print INST "passwd\n";
+    print STRAP "passwd\n";
+    
+    close STRAP;
+    chmod 0755, "$g_configure_script";
+    
+    print INST "mv $g_configure_script /mnt/$g_configure_script\n";
+    
+    print INST "arch-chroot /mnt /$g_configure_script\n";
+    
+    print INST "echo \"Installation was a success\"\n";
     
     close INST;
+    chmod 0755, "$g_install_script";
 }
 
 #=======================================================================

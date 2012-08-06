@@ -43,7 +43,9 @@ our ($g_keymap,
      $g_domain,
      $g_disk,
      %g_disks,
-     @g_mountpoints);
+     @g_mountpoints,
+     $g_install_script,
+     $g_configure_script);
 
 # Default values
 $g_keymap = 'us';
@@ -54,6 +56,8 @@ $g_timezone_directory = '/usr/share/zoneinfo/';
 $g_locale_gen = '/etc/locale.gen';
 $g_rc_conf = '/etc/rc.conf';
 @g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
+$g_install_script = 'arch-install.sh';
+$g_configure_script = 'arch-configure.sh';
 
 #=======================================================================
 1;
