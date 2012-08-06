@@ -416,6 +416,8 @@ sub CS_nav_apply
     $g_timezone = $timezonelist->get();
     @g_locales = $localelist->get();
     $g_locale_lang = $localelist_lang->get();
+    $g_locale_lang =~ s/\s+.*//;
+    chomp($g_locale_lang);
     $g_localetime = $localetimecb->get();
     
     $info->text('System configuration applied');
@@ -661,7 +663,7 @@ sub IS_nav_make_install
         open (my $in, "<", $g_mirrorlist);
         open (my $out, ">", "./mirrorlist");    
     
-        my $found = 0;
+        my $found;
         while(my $line = <$in>) {        
             if ($line =~ /^\s*$/) {
                 print $out $line;
@@ -669,7 +671,7 @@ sub IS_nav_make_install
             }
             $found = 0;
             foreach(@g_mirrors) {
-                $_ =~ s/\s.*$//;
+                $_ = (split(/\s/, $_))[-1];        
                 if(index($line, $_) != -1) {
                     $found = 1;
                     $line =~ s/^[#\s]+//;                
@@ -693,7 +695,7 @@ sub IS_nav_make_install
             print INST $_;
         }
         close MIRRORFILE;
-        print INST "EOF\n\n";
+        print INST "EOF\n";
         unlink('./mirrorlist');
     }
     
@@ -768,12 +770,9 @@ sub IS_nav_make_install
     print INST "EOF\n\n";            
     unlink('./locale.gen');
     
-    print INST "locale-gen > /dev/null 2>&1\n";
-    
-    my $locale_lang_stripped = $g_locale_lang;
-    $locale_lang_stripped =~ s/\s+.*//;
-        
-    print INST "echo \"LANG=$locale_lang_stripped\" > /etc/locale.conf\n";
+    print INST "locale-gen > /dev/null 2>&1\n";    
+            
+    print INST "echo \"LANG=$g_locale_lang\" > /etc/locale.conf\n";
         
     # setup hostname/hosts
     
@@ -793,7 +792,7 @@ sub IS_nav_make_install
     
     while(my $line = <$rcin>) {        
         if ($line =~ /^interface=/) {            
-            print $rcout "$line$g_interface"; # FIXME does interface already exists?
+            print $rcout "interface=$g_interface\n";
         }
         else {
             print $rcout $line;
