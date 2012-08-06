@@ -402,7 +402,7 @@ sub CS_focus
 
 sub CS_nav_apply
 {
-    use vars qw($g_timezone @g_locales $g_locale_lang);
+    use vars qw($g_timezone @g_locales $g_locale_lang $g_localetime);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -416,6 +416,7 @@ sub CS_nav_apply
     $g_timezone = $timezonelist->get();
     @g_locales = $localelist->get();
     $g_locale_lang = $localelist_lang->get();
+    $g_localetime = $localetimecb->get();
     
     $info->text('System configuration applied');
 }
@@ -499,14 +500,18 @@ sub IS_focus
     #my $info = $this->getobj('info');    
 }
 
-sub IS_nav_install
+sub IS_nav_make_install
 {
-    use vars qw($g_keymap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors $g_timezone @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip $g_domain $g_disk);
+    use vars qw($g_keymap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
+    $g_timezone $g_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
+    $g_domain $g_disk $g_rc_conf $g_locale_default);
     
     my $bbox = shift;
     my $win = $bbox->parent;
     my $viewer = $win->getobj('viewer');
 
+    # make sure all required variables are set
+    
     if(!defined($g_disk)) {
         $viewer->text('Disk undefined');
         return;
@@ -520,19 +525,12 @@ sub IS_nav_install
     if(!defined($g_bootloader)) {
         $viewer->text('Bootloader undefined');
         return;
-    }
-    
-    if($g_wirelesstools) {        
-    }
+    }    
     
     if(!@g_partition_table) {
         $viewer->text('Partition table is empty');
         return;
-    }
-    
-    if(@g_mirrors) {
-        
-    }
+    }    
     
     if(!defined($g_timezone)) {
         
@@ -567,56 +565,281 @@ sub IS_nav_install
         }
     }
     
+    # make sure the root partition is set
+    
+    my $root_found = 0;
+    foreach(@g_partition_table) {
+        my ($dsk, $mount, $fs, $size) = split /:/;
+        if($mount eq 'root') { $root_found = 1; }
+    }
+    
+    if(!$root_found) {
+        $viewer->text('No root partition found');
+        return;
+    }
+    
+    # create and generate the installer script
+    
     my $last_mount;
-    open STAGE1, ">stage1.sh";
+    open INST, ">install.sh";
     
-    print STAGE1 "#!/bin/bash\n\n";
+    print INST "#!/bin/bash\n\n";
     
-    print STAGE1 "parted -s $g_disk mktable gpt\n\n";
+    print INST "parted -s $g_disk mktable gpt\n\n";
     
     #max=$(( $(cat $g_disk/size) * 512 / 1024 / 1024 - 1 ))
     
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         if(defined($last_mount)) {
-            print STAGE1 "$mount=\$((\$$last_mount + $size))\n";
-            print STAGE1 "parted $g_disk unit MiB mkpart primary \$$last_mount \$$mount\n";
+            print INST "$mount=\$((\$$last_mount + $size))\n";
+            print INST "parted $g_disk unit MiB mkpart primary \$$last_mount \$$mount\n";
         }
         else {
-            print STAGE1 "$mount=\$((1 + $size))\n";
-            print STAGE1 "parted $g_disk unit MiB mkpart primary 1 \$$mount\n";
+            print INST "$mount=\$((1 + $size))\n";
+            print INST "parted $g_disk unit MiB mkpart primary 1 \$$mount\n";
         }        
         $last_mount = $mount;
     }
     
-    print STAGE1 "\n";
+    print INST "\n";
     
     my $partnr = 1;
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         given($fs) {
             when('ext2') {
-                print STAGE1 "mkfs.ext2 $g_disk$partnr\n";
+                print INST "mkfs.ext2 $g_disk$partnr\n";
             }
             when('ext3') {
-                print STAGE1 "mkfs.ext3 $g_disk$partnr\n";
+                print INST "mkfs.ext3 $g_disk$partnr\n";
             }
             when('ext4') {
-                print STAGE1 "mkfs.ext4 $g_disk$partnr\n";
+                print INST "mkfs.ext4 $g_disk$partnr\n";
             }
             when('swap') {
-                print STAGE1 "mkswap $g_disk$partnr\n";
+                print INST "mkswap $g_disk$partnr\n";
+                print INST "swapon $g_disk$partnr\n";
+            }
+        }
+        
+        if($mount eq 'root') {
+            print INST "mount $g_disk /mnt\n";
+        }
+        $partnr++;
+    }
+    
+    print INST "\n";    
+    
+    $partnr = 1;
+    foreach(@g_partition_table) {
+        my ($dsk, $mount, $fs, $size) = split /:/;
+        given($mount) {
+            when('boot') {
+                print INST "mkdir /mnt/boot\n";
+                print INST "mount $g_disk$partnr /mnt/boot\n";
+            }
+            when('home') {
+                print INST "mkdir /mnt/home\n";
+                print INST "mount $g_disk$partnr /mnt/home\n";
+            }
+            when('var') {
+                print INST "mkdir /mnt/var\n";
+                print INST "mount $g_disk$partnr /mnt/var\n";
+            }
+            when('dev') {
+                print INST "mkdir /mnt/dev\n";
+                print INST "mount $g_disk$partnr /mnt/dev\n";
             }
         }
         $partnr++;
     }
     
-    close STAGE1;
-}
+    print INST "\n";
+    
+    if(@g_mirrors) {
+        open (my $in, "<", $g_mirrorlist);
+        open (my $out, ">", "./mirrorlist");    
+    
+        my $found = 0;
+        while(my $line = <$in>) {        
+            if ($line =~ /^\s*$/) {
+                print $out $line;
+                next;
+            }
+            $found = 0;
+            foreach(@g_mirrors) {
+                $_ =~ s/\s.*$//;
+                if(index($line, $_) != -1) {
+                    $found = 1;
+                    $line =~ s/^[#\s]+//;                
+                    print $out $line;
+                    last;
+                }
+            }
+            
+            if(!$found) {
+                if($line !~ /^#/) { print $out "#$line"; }
+                else { print $out $line; }
+            }        
+        }
+        
+        close $in;
+        close $out;
+                
+        open MIRRORFILE, './mirrorlist';
+        print INST "cat>$g_mirrorlist <<EOF\n";
+        while(<MIRRORFILE>) {
+            print INST $_;
+        }
+        close MIRRORFILE;
+        print INST "EOF\n\n";
+        unlink('./mirrorlist');
+    }
+    
+    print INST "\n";
+    
+    print INST "pacstrap /mnt base base-devel\n";
+    
+    if($g_wirelesstools) {
+        print INST "pacstrap /mnt wireless_tools netcfg wpa_supplicant wpa_actiond\n";
+    }
+    
+    given($g_bootloader) {
+        when('grub2') {
+            print INST "pacstrap /mnt grub-bios\n";
+        }
+        when('syslinux') {
+            print INST "pacstrap /mnt syslinux\n";
+        }
+    }
+    
+    print INST "\n";
+    
+    print INST "genfstab -p /mnt >> /mnt/etc/fstab\n";    
+    print INST "arch-chroot /mnt\n";
 
-sub IS_nav_configure
-{
-    # check all required variables
+    print INST "\n";
+    
+    # setup vconsole.conf
+    
+    print INST "echo \"KEYMAP=$g_keymap\" > /etc/vconsole.conf\n";
+    print INST "echo \"FONT=\" >> /etc/vconsole.conf\n";
+    print INST "echo \"FONT_MAP=\" >> /etc/vconsole.conf\n";
+    
+    print INST "\n";
+    
+    # setup locale
+    
+    open (my $in, "<", $g_locale_gen);
+    open (my $out, ">", './locale.gen');    
+    
+    my $found;
+    while(my $line = <$in>) {
+        $found = 0;
+        if ($line =~ /^#*[a-z]{2,3}_/) {            
+            foreach(@g_locales) {                
+                if(index($line, $_) != -1 or index($line, $g_locale_lang) != -1) {
+                    $found = 1;
+                    $line =~ s/^[#\s]+//;                
+                    print $out $line;
+                    last;
+                }
+            }            
+        }        
+        
+        if(!$found) {
+            if($line !~ /^#/) { print $out "#$line"; }
+            else { print $out $line; }
+        }        
+    }
+    
+    close $in;
+    close $out;
+    
+    print INST "\n";
+    
+    open LOCFILE, './locale.gen';
+    print INST "cat>$g_locale_gen<<EOF\n";
+    while(<LOCFILE>) {
+        print INST $_;
+    }
+    close LOCFILE;
+    print INST "EOF\n\n";            
+    unlink('./locale.gen');
+    
+    print INST "locale-gen > /dev/null 2>&1\n";
+    
+    my $locale_lang_stripped = $g_locale_lang;
+    $locale_lang_stripped =~ s/\s+.*//;
+        
+    print INST "echo \"LANG=$locale_lang_stripped\" > /etc/locale.conf\n";
+        
+    # setup hostname/hosts
+    
+    print INST "echo \"$g_hostname\" > /etc/hostname\n";
+    
+    print INST "echo \"127.0.0.1    localhost.localdomain   localhost   $g_hostname\" > /etc/hosts\n";
+    print INST "echo \"::1          localhost.localdomain   localhost   $g_hostname\" >> /etc/hosts\n";
+    
+    if($g_static_ip) {
+        print INST "echo \"\$ip  \$hostname.\$domain   \$hostname\" >> /etc/hosts\n";
+    }
+    
+    # setup rc.conf
+    
+    open (my $rcin, "<", $g_rc_conf);
+    open (my $rcout, ">", './rc.conf');        
+    
+    while(my $line = <$rcin>) {        
+        if ($line =~ /^interface=/) {            
+            print $rcout "$line$g_interface"; # FIXME does interface already exists?
+        }
+        else {
+            print $rcout $line;
+        }
+    }
+    
+    close $rcin;
+    close $rcout;
+    
+    open RCFILE, './rc.conf';
+    print INST "cat>$g_rc_conf <<EOF\n";
+    while(<RCFILE>) {
+        print INST $_;
+    }
+    close RCFILE;
+    print INST "EOF\n\n";            
+    unlink('./rc.conf');
+   
+    # setup hardware clock
+        
+    if($g_localetime) {
+        print INST "hwclock --systohc --localtime\n";
+    }
+    else {
+        print INST "hwclock --systohc --utc\n";
+    }
+   
+    # create initial ramdisk
+    print INST "mkinitcpio -p linux\n";
+    
+    # configure bootloader
+    
+    given($g_bootloader) {
+        when('syslinux') {
+            print INST "/usr/sbin/syslinux-install_update -iam\n";
+        }        
+        when('grub2') {
+            print INST "grub-install $g_disk\n";
+            print INST "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo\n";
+            print INST "grub-mkconfig -o /boot/grub/grub.cfg\n";
+        }        
+    }    
+        
+    print INST "passwd\n";
+    
+    close INST;
 }
 
 #=======================================================================

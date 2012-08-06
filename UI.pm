@@ -223,7 +223,7 @@ sub run()
     );    
     
     #=======================================================================
-    # UI - Reboot system
+    # UI - Make install
     #=======================================================================
     
     $win{'IS'} = $cui->add(undef, 'Window', -title => 'Archibald: Reboot system', %win_args, -onFocus => \&IS_focus);
@@ -232,8 +232,7 @@ sub run()
     
     $win{'IS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Install base system>', -value => 'ibs', -onpress => \&IS_nav_install },
-            { -label => '<Configure base system>', -value => 'cbs', -onpress => \&IS_nav_configure },
+            { -label => '<Generate installation script>', -value => 'ibs', -onpress => \&IS_nav_make_install },            
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
         ]
     );    

@@ -26,8 +26,8 @@ use UI;
 
 use strict 'subs';
 
-#my $login = (getpwuid $>);
-#die "This script must be run as root" if $login ne 'root';
+my $login = (getpwuid $>);
+die "This script must be run as root" if $login ne 'root';
 
 open STDERR, ">stderr.log" or die $!;
 STDERR->autoflush(1);
