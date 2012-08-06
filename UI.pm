@@ -47,7 +47,7 @@ sub run()
     
     $win{"MM"}->add('nav', 'Buttonbox', -y => 1, -vertical => 1,
         -buttons  => [
-            { -label => 'Configure keymap for the live system', -value => 'ck', -onpress => sub { $win{'CK'}->focus } },
+            { -label => 'Configure keymap', -value => 'ck', -onpress => sub { $win{'CK'}->focus } },
             { -label => 'Configure network for the live system', -value => 'cn', -onpress => sub { $win{'CN'}->focus } },            
             { -label => 'Select mount points and filesystem *', -value => 'smp', -onpress => sub { $win{'SMP'}->focus } },
             { -label => 'Select installation mirrors', -value => 'sm', -onpress => sub { $win{'SM'}->focus } },
@@ -107,12 +107,14 @@ sub run()
         -onchange => \&SMP_devicelist_change, -onFocus => \&SMP_devicelist_focus);
 
     $win{'SMP'}->add('mountlist', 'Radiobuttonbox', -x => 20, -y => 2, -width => 20, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Mount points',        
-        -onchange => \&SMP_mountlist_change, -onFocus => \&SMP_mountlist_focus, -values => ['boot', 'root', 'swap', 'home', 'var', 'dev']);
+        -onchange => \&SMP_mountlist_change, -onFocus => \&SMP_mountlist_focus);
         
     $win{'SMP'}->add('fslist', 'Radiobuttonbox', -x => 40, -y => 2, -width => 20, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
         -onchange => \&SMP_fslist_change, -onFocus => \&SMP_fslist_focus, -values => ['ext2', 'ext3', 'ext4', 'swap']);
     
-    $win{'SMP'}->add('partsize', 'TextEntry', -x => 60, -y => 2, -width => 20, -border => 1, -title => 'Size (MB)', -onFocus => \&SMP_partsize_focus);
+    $win{'SMP'}->add('remsize', 'Label', -x => 60, -y => 2, -width => 20, -bold => 1);
+    
+    $win{'SMP'}->add('partsize', 'TextEntry', -x => 60, -y => 4, -width => 20, -border => 1, -title => 'Size (MB)', -onFocus => \&SMP_partsize_focus);
     
     $win{'SMP'}->add('parttable', 'Listbox', -x => 0, -y => 8, -width => -1, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
     

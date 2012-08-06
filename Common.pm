@@ -41,7 +41,9 @@ our ($g_keymap,
      $g_static_ip,
      $g_ip,
      $g_domain,
-     $g_disk);
+     $g_disk,
+     %g_disks,
+     @g_mountpoints);
 
 # Default values
 $g_keymap = 'us';
@@ -51,6 +53,7 @@ $g_mirrorlist = '/etc/pacman.d/mirrorlist';
 $g_timezone_directory = '/usr/share/zoneinfo/';
 $g_locale_gen = '/etc/locale.gen';
 $g_rc_conf = '/etc/rc.conf';
+@g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
 
 #=======================================================================
 1;

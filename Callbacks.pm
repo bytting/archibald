@@ -139,11 +139,13 @@ sub CN_nav_updown
 
 sub SMP_focus
 {
+    use vars qw(%g_disks @g_mountpoints);
+    
     my $win = shift;
     my $info = $win->getobj('info');
     my $devicelist = $win->getobj('devicelist');    
     my $mountlist = $win->getobj('mountlist');
-    my $fslist = $win->getobj('fslist');
+    my $fslist = $win->getobj('fslist');    
     
     $mountlist->clear_selection();
     $fslist->clear_selection();
@@ -156,20 +158,35 @@ sub SMP_focus
         my $contents = do { local $/; <FILE> };
         if($contents > 0) {
             s/^\/sys\/block\///;
-            push @disks, $_;
+            $g_disks{$_} = $contents * 512 / 1000 / 1000 - 1;
         }
     }    
         
-    $devicelist->values(@disks);    
+    $devicelist->values(keys %g_disks);
+    $mountlist->values(\@g_mountpoints);
     $devicelist->focus;
     $info->text('Select a device...');
 }
 
 sub SMP_devicelist_change
 {
+    use vars qw(%g_disks @g_partition_table);
+    
     my $bbox = shift;
-    my $win = $bbox->parent;    
+    my $win = $bbox->parent;
+    my $devicelist = $win->getobj('devicelist');
+    my $remsize = $win->getobj('remsize');
     my $mountlist = $win->getobj('mountlist');
+    
+    my $dev = $devicelist->get();
+    my $siz = $g_disks{$dev};
+    my $tmp;
+    foreach(@g_partition_table) {
+        $tmp = (split(/:/, $_))[-1];
+        $siz -= $tmp;
+    }
+    
+    $remsize->text($siz);
     
     $mountlist->focus;    
 }
@@ -239,19 +256,48 @@ sub SMP_nav_focus
  
 sub SMP_nav_add
 {
-    use vars qw(@g_partition_table $g_disk);
+    use vars qw(@g_partition_table $g_disk %g_disks @g_mountpoints);
     
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $info = $win->getobj('info');    
+    my $info = $win->getobj('info');
+    my $remsize = $win->getobj('remsize');    
     my ($devicelist, $mountlist, $fslist, $partsize, $parttable) = (
         $win->getobj('devicelist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
     );                
     
+    my $dev = $devicelist->get();
+    my $dev_path = "/dev/$dev";
+    if(defined($g_disk)) {
+        if($dev_path ne $g_disk) {
+            $info->text("Only one device can be used ($g_disk chosen)");
+            return;
+        }
+    }    
+    
+    my $siz = $g_disks{$dev};
+    my $tmp;
+    foreach(@g_partition_table) {
+        $tmp = (split(/:/, $_))[-1];
+        $siz -= $tmp;
+    }
+    
+    my $new_size = $partsize->get();
+    if($siz - $new_size < 0) {
+        $info->text("Not enough space on $g_disk");
+        return;
+    }    
+    
+    $remsize->text($siz - $new_size);
+    
     $g_disk = "/dev/" . $devicelist->get();
-    my $entry = $g_disk . ':' . $mountlist->get() . ':' . $fslist->get() . ':' . $partsize->get();
+    my $entry = $g_disk . ':' . $mountlist->get() . ':' . $fslist->get() . ':' . $new_size;
     
     push @g_partition_table, $entry;
+        
+    my $item = $mountlist->get();
+    @g_mountpoints = grep { $_ ne $item } @g_mountpoints;
+    $mountlist->values(\@g_mountpoints);
     
     $parttable->values(\@g_partition_table);
     $parttable->draw(0);     
@@ -262,17 +308,24 @@ sub SMP_nav_add
 
 sub SMP_nav_clear
 {
-    use vars qw(@partition_table);
+    use vars qw(@g_partition_table);
+    
     my $bbox = shift;
     my $win = $bbox->parent;
     my ($devicelist, $parttable) = ($win->getobj('devicelist'), $win->getobj('parttable'));
     my ($mountlist, $fslist) = ($win->getobj('mountlist'), $win->getobj('fslist'));
+    my $partsize = $win->getobj('partsize');
+    my $remsize = $win->getobj('remsize');
         
     $devicelist->clear_selection();
     $mountlist->clear_selection();
+    $mountlist->values(['boot', 'root', 'swap', 'home', 'var', 'dev']);
     $fslist->clear_selection();
-    @partition_table = ();
-    $parttable->values(\@partition_table);
+    $partsize->text('');
+    $remsize->text('');
+    @g_partition_table = ();
+    @g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
+    $parttable->values(\@g_partition_table);
     $parttable->draw(0);    
     $devicelist->focus;
 }
