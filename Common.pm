@@ -39,7 +39,8 @@ our ($g_keymap,
      $g_interface,
      $g_static_ip,
      $g_ip,
-     $g_domain, $g_disk);
+     $g_domain,
+     $g_disk);
 
 # Default values
 $g_keymap = 'us';

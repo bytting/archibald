@@ -148,17 +148,19 @@ sub SMP_focus
     $mountlist->clear_selection();
     $fslist->clear_selection();
     
-    my %disks;
-    my @ipc = `fdisk -l`;    
-    
-    for (@ipc) {
-        if (/^Disk.+bytes$/) {
-            /(\/dev\/\w+):.+\s(\d+)\sbytes$/;  # FIXME          
-            $disks{$1} = $2;
+    my (@sd_disks, @hd_disks, @disks);
+    @sd_disks = glob("/sys/block/sd*");
+    @hd_disks = glob("/sys/block/hd*");
+    foreach (@sd_disks, @hd_disks) {
+        open FILE, "<$_/size";
+        my $contents = do { local $/; <FILE> };
+        if($contents > 0) {
+            s/^\/sys\/block\///;
+            push @disks, $_;
         }
-    }
+    }    
         
-    $devicelist->values(keys %disks);    
+    $devicelist->values(@disks);    
     $devicelist->focus;
     $info->text('Select a device...');
 }
@@ -237,7 +239,7 @@ sub SMP_nav_focus
  
 sub SMP_nav_add
 {
-    use vars qw(@g_partition_table);
+    use vars qw(@g_partition_table $g_disk);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -246,7 +248,8 @@ sub SMP_nav_add
         $win->getobj('devicelist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
     );                
     
-    my $entry = $devicelist->get() . ':' . $mountlist->get() . ':' . $fslist->get() . ':' . $partsize->get();
+    $g_disk = "/dev/" . $devicelist->get();
+    my $entry = $g_disk . ':' . $mountlist->get() . ':' . $fslist->get() . ':' . $partsize->get();
     
     push @g_partition_table, $entry;
     
@@ -565,18 +568,49 @@ sub IS_nav_install
     }
     
     my $last_mount;
-    open STAGE1, 'stage1.sh';
+    open STAGE1, ">stage1.sh";
+    
+    print STAGE1 "#!/bin/bash\n\n";
+    
     print STAGE1 "parted -s $g_disk mktable gpt\n\n";
+    
+    #max=$(( $(cat $g_disk/size) * 512 / 1024 / 1024 - 1 ))
+    
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         if(defined($last_mount)) {
-            print STAGE1 "$mount=$((   $last_mount   +   $size    ))\n";
+            print STAGE1 "$mount=\$((\$$last_mount + $size))\n";
+            print STAGE1 "parted $g_disk unit MiB mkpart primary \$$last_mount \$$mount\n";
         }
         else {
-            print STAGE1 "$mount=$((   1   +   $size    ))\n";
+            print STAGE1 "$mount=\$((1 + $size))\n";
+            print STAGE1 "parted $g_disk unit MiB mkpart primary 1 \$$mount\n";
         }        
         $last_mount = $mount;
     }
+    
+    print STAGE1 "\n";
+    
+    my $partnr = 1;
+    foreach(@g_partition_table) {
+        my ($dsk, $mount, $fs, $size) = split /:/;
+        given($fs) {
+            when('ext2') {
+                print STAGE1 "mkfs.ext2 $g_disk$partnr\n";
+            }
+            when('ext3') {
+                print STAGE1 "mkfs.ext3 $g_disk$partnr\n";
+            }
+            when('ext4') {
+                print STAGE1 "mkfs.ext4 $g_disk$partnr\n";
+            }
+            when('swap') {
+                print STAGE1 "mkswap $g_disk$partnr\n";
+            }
+        }
+        $partnr++;
+    }
+    
     close STAGE1;
 }
 
