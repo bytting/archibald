@@ -584,7 +584,13 @@ sub IS_nav_make_install
     if(!defined($g_bootloader)) {
         $viewer->text('Bootloader undefined');
         return;
-    }    
+    }
+    else {
+        if($g_bootloader eq 'syslinux') { # FIXME
+            $viewer->text('Sorry, the syslinux bootloader is not supported yet');
+            return;
+        }
+    }
     
     if(!@g_partition_table) {
         $viewer->text('Partition table is empty');
@@ -699,15 +705,8 @@ sub IS_nav_make_install
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         given($mount) {
-            when('bios') {
-                given($g_bootloader) {
-                    when('grub2') {
-                        emit_line($inst, "parted $g_disk set $partnr bios_grub on");                
-                    }
-                    when('syslinux') {
-                        emit_line($inst, "parted $g_disk set $partnr legacy_boot on");                
-                    }
-                }                
+            when('bios') {                
+                emit_line($inst, "parted $g_disk set $partnr bios_grub on");                                            
             }
             when('boot') {
                 emit_line($inst, "parted $g_disk set $partnr boot on"); # FIXME boot may not exist

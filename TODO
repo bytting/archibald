@@ -1,5 +1,7 @@
 Make static IP address work (need to generate bash for this)
 Comment the code
+Filter language based on locales (?)
+Make mount point "swap" force selection of filesystem type "swap"
 Allow a partition setup with no separate boot partition (set the boot flag on root instead)
 Make the remaining disk size take the bios partition(s) into account
 Support disks other than sd* and hd* (?)
@@ -8,6 +10,7 @@ Support for more filesystem types
 Support msdos partition table (?)
 Manual partitioning
 UEFI support
+Add an option to install Arch directly from a pre-made installer script (eg. setup --url=myserver.com/arch-installer)
 Make wireless and mobile broadband work
 Load wireless firmware
 Support signed packages (?)

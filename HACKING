@@ -1,0 +1,51 @@
+
+====================================================
+
+Archibald is supposed to be a community developed installer for Arch linux.
+Anyone who are familiar with perl can participate by adding features, fixing bugs
+or maybe refactoring existing code.
+
+The basic idea is that the archibald installer should generate a bash installer script.
+This makes it relatively easy to work with as you can develope the software on pretty
+much any computer and manually inspect the generated bash installer without going
+through the process of testing it in virtualbox, or whatever, every time a change has been made.
+Work on the generated bash script until it looks promising, then give it a test.
+
+Another reason for generating a standalone installer is that it may come in handy if you are
+a system administrator and you need to install Arch on several computers simultanously.
+Having a pre-generated installer should make this process quick and easy.
+
+As of this writing I have no other rule than this:
+Take responsibility for you own code, and comment it so that others can follow along.
+
+The structure of the code is as follows:
+
+setup:
+This is a bash file responsible for checking root access and installing any prerequisites,
+like the perl curses module. After that it fires off archibald.pl
+
+archibald.pl:
+This perl script sets up some environment before it launches the run function in UI.pl
+
+UI.pl:
+Contains the driver function "run", which sets up the entire UI and then goes into a
+curses event loop.
+
+Callbacks.pl:
+This file contains all the callback routines referenced in UI.pl
+Along with UI.pl this file is contians the meat of the application.
+
+Functions.pl:
+This file contains helper functions used in Callback.pl
+
+Common.pl:
+This file contains global variables shared among the other files.
+
+====================================================
+
+And thats about it. A pretty basic setup.
+
+If you are interrested in hacking on this application, feel free to contact me at the github project:
+https://github.com/corebob/archibald
+
+====================================================
