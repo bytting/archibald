@@ -643,122 +643,116 @@ sub IS_nav_make_install
     
     # create and generate the installer script
         
-    open INST, ">$g_install_script";    
-    print INST "#!/bin/bash\n\n";
-    
-    print INST "if [ \$1 != \"--configure\"]; then\n";
-    
-    print INST "parted -s $g_disk mktable gpt\n\n";
-    
-    #max=$(( $(cat $g_disk/size) * 512 / 1024 / 1024 - 1 ))
+    open my $inst, ">$g_install_script";    
+    emit_bash($inst, "#!/bin/bash");    
+    emit_bash($inst, "if [ \$1 != \"--configure\"]; then # This part runs before chroot jail");    
+    emit_bash_with_check($inst, "parted -s $g_disk mktable gpt", "parted mktable successful", "parted mktable failed");    
     
     my $last_mount;    
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         if(defined($last_mount)) {
-            print INST "$mount=\$((\$$last_mount + $size))\n";
-            print INST "parted $g_disk unit MiB mkpart primary \$$last_mount \$$mount\n";
+            emit_bash($inst, "$mount=\$((\$$last_mount + $size))");
+            emit_bash_with_check($inst, "parted $g_disk unit MiB mkpart primary \$$last_mount \$$mount", "parted mkpart successful", "parted mkpart failed");
         }
         else {
-            print INST "$mount=\$((1 + $size))\n";
-            print INST "parted $g_disk unit MiB mkpart primary 1 \$$mount\n";
+            emit_bash($inst, "$mount=\$((1 + $size))");
+            emit_bash_with_check($inst, "parted $g_disk unit MiB mkpart primary 1 \$$mount", "parted mkpart successful", "parted mkpart failed");
         }        
         $last_mount = $mount;
     }
     
-    print INST "\n";
+    emit_bash($inst, "\n");
     
     my $partnr = 1;
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         given($fs) {
             when('ext2') {
-                print INST "mkfs.ext2 $g_disk$partnr\n";
+                emit_bash_with_check($inst, "mkfs.ext2 $g_disk$partnr", "mkfs.ext2 successful", "mkfs.ext2 failed");
             }
             when('ext3') {
-                print INST "mkfs.ext3 $g_disk$partnr\n";
+                emit_bash_with_check($inst, "mkfs.ext3 $g_disk$partnr", "mkfs.ext3 successful", "mkfs.ext3 failed");
             }
             when('ext4') {
-                print INST "mkfs.ext4 $g_disk$partnr\n";
+                emit_bash_with_check($inst, "mkfs.ext4 $g_disk$partnr", "mkfs.ext4 successful", "mkfs.ext4 failed");
             }
             when('swap') {
-                print INST "mkswap $g_disk$partnr\n";
-                print INST "swapon $g_disk$partnr\n";
+                emit_bash_with_check($inst, "mkswap $g_disk$partnr", "mkswap successful", "mkswap failed");
+                emit_bash_with_check($inst, "swapon $g_disk$partnr", "swapon successful", "swapon failed");
             }
         }
         
         if($mount eq 'root') {
-            print INST "mount $g_disk$partnr /mnt\n";
+            emit_bash_with_check($inst, "mount $g_disk$partnr /mnt", "mount successful", "mount failed");
         }
         $partnr++;
     }
     
-    print INST "\n";    
+    emit_bash($inst, "\n");    
     
     $partnr = 1;
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         given($mount) {
             when('boot') {
-                print INST "mkdir /mnt/boot\n";
-                print INST "mount $g_disk$partnr /mnt/boot\n";
+                emit_bash_with_check($inst, "mkdir /mnt/boot", "mkdir sucessful", "mkdir failed");
+                emit_bash_with_check($inst, "mount $g_disk$partnr /mnt/boot", "mount successful", "mount failed");
             }
             when('home') {
-                print INST "mkdir /mnt/home\n";
-                print INST "mount $g_disk$partnr /mnt/home\n";
+                emit_bash_with_check($inst, "mkdir /mnt/home", "mkdir sucessful", "mkdir failed");
+                emit_bash_with_check($inst, "mount $g_disk$partnr /mnt/home", "mount successful", "mount failed");
             }
             when('var') {
-                print INST "mkdir /mnt/var\n";
-                print INST "mount $g_disk$partnr /mnt/var\n";
+                emit_bash_with_check($inst, "mkdir /mnt/var", "mkdir sucessful", "mkdir failed");
+                emit_bash_with_check($inst, "mount $g_disk$partnr /mnt/var", "mount successful", "mount failed");
             }
             when('dev') {
-                print INST "mkdir /mnt/dev\n";
-                print INST "mount $g_disk$partnr /mnt/dev\n";
+                emit_bash_with_check($inst, "mkdir /mnt/dev", "mkdir sucessful", "mkdir failed");
+                emit_bash_with_check($inst, "mount $g_disk$partnr /mnt/dev", "mount successful", "mount failed");
             }
         }
         $partnr++;
     }
     
-    print INST "\n";
+    emit_bash($inst, "\n");    
     
-    print INST "pacstrap /mnt base base-devel\n";
+    emit_bash_with_check($inst, "pacstrap /mnt base base-devel", "pacstrap successful", "pacstrap failed");
     
     if($g_wirelesstools) {
-        print INST "pacstrap /mnt wireless_tools netcfg wpa_supplicant wpa_actiond\n";
+        emit_bash_with_check($inst, "pacstrap /mnt wireless_tools netcfg wpa_supplicant wpa_actiond", "pacstrap successful", "pacstrap failed");
     }
     
     given($g_bootloader) {
         when('grub2') {
-            print INST "pacstrap /mnt grub-bios\n";
+            emit_bash_with_check($inst, "pacstrap /mnt grub-bios", "pacstrap successful", "pacstrap failed");
         }
         when('syslinux') {
-            print INST "pacstrap /mnt syslinux\n";
+            emit_bash_with_check($inst, "pacstrap /mnt syslinux", "pacstrap successful", "pacstrap failed");
         }
     }
     
-    print INST "\n";
+    emit_bash($inst, "\n");
     
-    print INST "genfstab -p /mnt >> /mnt/etc/fstab\n";
+    emit_bash_with_check($inst, "genfstab -p /mnt >> /mnt/etc/fstab", "genfstab successful", "genfstab failed");
     
-    print INST "\n";
+    emit_bash($inst, "\n");
     
-    print INST "mv $g_install_script /mnt/$g_install_script\n";
+    emit_bash_with_check($inst, "mv $g_install_script /mnt/$g_install_script", "mv successful", "mv failed");
+    emit_bash_with_check($inst, "arch-chroot /mnt /$g_install_script --configure", "arch-chroot successful", "arch-chroot failed");
     
-    print INST "arch-chroot /mnt /$g_install_script --configure\n";
+    emit_bash($inst, "\n");    
+    emit_bash($inst, "echo \"Installation was a success\"");
     
-    print INST "\n";
-    
-    print INST "echo \"Installation was a success\"\n";
-    
-    print INST "\n\nelse\n\n";    
+    emit_bash($inst, "\n\nelse # This part runs in chroot jail\n\n");    
     
     # setup vconsole.conf
     
-    print INST "echo \"KEYMAP=$g_keymap\" > /etc/vconsole.conf\n";
-    print INST "echo \"FONT=\" >> /etc/vconsole.conf\n";
-    print INST "echo \"FONT_MAP=\" >> /etc/vconsole.conf\n";
+    emit_bash($inst, "echo \"KEYMAP=$g_keymap\" > /etc/vconsole.conf");
+    emit_bash($inst, "echo \"FONT=\" >> /etc/vconsole.conf");
+    emit_bash($inst, "echo \"FONT_MAP=\" >> /etc/vconsole.conf");
     
-    print INST "\n";
+    emit_bash($inst, "\n");        
     
     #setup mirrorlist
     
@@ -793,12 +787,12 @@ sub IS_nav_make_install
         close $out;
                 
         open MIRRORFILE, './mirrorlist';
-        print INST "cat>$g_mirrorlist <<EOF\n";
+        emit_bash($inst, "cat>$g_mirrorlist <<EOF");
         while(<MIRRORFILE>) {
-            print INST $_;
+            emit($inst, $_);
         }
         close MIRRORFILE;
-        print INST "EOF\n";
+        emit_bash($inst, "EOF");
         unlink('./mirrorlist');
     }
     
@@ -830,37 +824,37 @@ sub IS_nav_make_install
     close $in;
     close $out;
     
-    print INST "\n";
+    emit_bash($inst, "\n");
     
     open LOCFILE, './locale.gen';
-    print INST "cat>$g_locale_gen<<EOF\n";
+    emit_bash($inst, "cat>$g_locale_gen<<EOF");
     while(<LOCFILE>) {
-        print INST $_;
+        emit($inst, $_);
     }
     close LOCFILE;
-    print INST "EOF\n\n";            
+    emit_bash($inst, "EOF");            
     unlink('./locale.gen');
     
-    print INST "locale-gen > /dev/null 2>&1\n";
+    emit_bash_with_check($inst, "locale-gen > /dev/null 2>&1", "locale-gen successful", "locale-gen failed");
     
-    print INST "\n";
+    emit_bash($inst, "\n");
             
-    print INST "echo \"LANG=$g_locale_lang\" > /etc/locale.conf\n";
+    emit_bash($inst, "echo \"LANG=$g_locale_lang\" > /etc/locale.conf");
         
     # setup hostname/hosts
     
     if(defined($g_hostname)) {
-        print INST "echo \"$g_hostname\" > /etc/hostname\n";
+        emit_bash($inst, "echo \"$g_hostname\" > /etc/hostname");
         
-        print INST "echo \"127.0.0.1    localhost.localdomain   localhost   $g_hostname\" > /etc/hosts\n";
-        print INST "echo \"::1          localhost.localdomain   localhost   $g_hostname\" >> /etc/hosts\n";
+        emit_bash($inst, "echo \"127.0.0.1    localhost.localdomain   localhost   $g_hostname\" > /etc/hosts");
+        emit_bash($inst, "echo \"::1          localhost.localdomain   localhost   $g_hostname\" >> /etc/hosts");
         
         if($g_static_ip) {
-            print INST "echo \"\$ip  \$hostname.\$domain   \$hostname\" >> /etc/hosts\n";
+            emit_bash($inst, "echo \"\$ip  \$hostname.\$domain   \$hostname\" >> /etc/hosts");
         }
     }
     
-    print INST "\n";
+    emit_bash($inst, "\n");
     
     # setup rc.conf
     
@@ -880,45 +874,47 @@ sub IS_nav_make_install
     close $rcout;
     
     open RCFILE, './rc.conf';
-    print INST "cat>$g_rc_conf <<EOF\n";
+    emit_bash($inst, "cat>$g_rc_conf <<EOF");
     while(<RCFILE>) {
-        print INST $_;
+        emit($inst, $_);
     }
     close RCFILE;
-    print INST "EOF\n\n";            
+    emit_bash($inst, "EOF");            
     unlink('./rc.conf');
    
     # setup hardware clock
         
     if($g_localetime) {
-        print INST "hwclock --systohc --localtime\n";
+        emit_bash_with_check($inst, "hwclock --systohc --localtime", "hwclock successful", "hwclock failed");
     }
     else {
-        print INST "hwclock --systohc --utc\n";
+        emit_bash_with_check($inst, "hwclock --systohc --utc", "hwclock successful", "hwclock failed");
     }
    
     # create initial ramdisk
-    print INST "mkinitcpio -p linux\n";
+    emit_bash_with_check($inst, "mkinitcpio -p linux", "mkinitcpio successful", "mkinitcpio failed");
     
     # configure bootloader
     
     given($g_bootloader) {
         when('syslinux') {
-            print INST "/usr/sbin/syslinux-install_update -iam\n";
+            emit_bash_with_check($inst, "/usr/sbin/syslinux-install_update -iam", "syslinux-install_update successful", "syslinux-install_update failed");
         }        
         when('grub2') {
-            print INST "grub-install $g_disk\n";
-            print INST "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo\n";
-            print INST "grub-mkconfig -o /boot/grub/grub.cfg\n";
+            emit_bash_with_check($inst, "grub-install $g_disk", "grub-install successful", "grub-install failed");
+            emit_bash($inst, "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo");
+            emit_bash_with_check($inst, "grub-mkconfig -o /boot/grub/grub.cfg", "grub-mkconfig successful", "grub-mkconfig failed");
         }        
     }    
         
-    print INST "passwd\n";    
+    emit_bash($inst, "passwd");    
     
-    print INST "fi\n";    
+    emit_bash($inst, "fi");    
     
-    close INST;
+    close $inst;
     chmod 0755, "$g_install_script";
+    
+    $viewer->text("Congratulations!\nAn installer has been saved in current working directory as $g_install_script. You may quit and install Arch with the following command: ./$g_install_script");
 }
 
 #=======================================================================

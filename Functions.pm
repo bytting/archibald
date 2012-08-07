@@ -43,6 +43,10 @@ sub find_files_deep
     return (0, sort @files);
 }
 
+#=======================================================================
+# find_zoneinfo: Get a list of available zones
+#=======================================================================
+
 sub find_zoneinfo
 {
     my $dir = shift;    
@@ -56,6 +60,37 @@ sub find_zoneinfo
     };
     find($map_finder, $dir);
     return (0, sort @entries);
+}
+
+#=======================================================================
+# emit: Emit text to a file handle
+#=======================================================================
+
+sub emit
+{
+    my ($handle, $cmd) = @_;
+    print $handle "$cmd";
+}
+
+#=======================================================================
+# emit: Emit bash to a file handle with newline
+#=======================================================================
+
+sub emit_bash
+{
+    my ($handle, $cmd) = @_;
+    emit($handle, "$cmd\n");
+}
+
+#=======================================================================
+# emit: Emit bash to a file handle including status messages
+#=======================================================================
+
+sub emit_bash_with_check
+{
+    my ($handle, $cmd, $msg_success, $msg_error) = @_;
+    emit_bash($handle, "$cmd");
+    print $handle "if [ \"\$?\" -ne \"0\" ]; then\n\techo \"$msg_error\\n\"\nelse\n\techo \"$msg_success\\n\"\nfi\n";
 }
 
 #=======================================================================
