@@ -1,7 +1,10 @@
-
+Make static IP address work (need to generate bash for this)
+Comment the code
+Support disks other than sd* and hd* (?)
+Make syslinux work with gpt
 Support for more filesystem types
 Manual partitioning
 UEFI support
-wireless
-wireless firmware
-Support signed packages
+Make wireless and mobile broadband work
+Load wireless firmware
+Support signed packages (?)

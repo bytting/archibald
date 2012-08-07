@@ -73,24 +73,13 @@ sub emit
 }
 
 #=======================================================================
-# emit: Emit bash to a file handle with newline
+# emit_bash: Emit text to a file handle with newline
 #=======================================================================
 
-sub emit_bash
+sub emit_line
 {
     my ($handle, $cmd) = @_;
     emit($handle, "$cmd\n");
-}
-
-#=======================================================================
-# emit: Emit bash to a file handle including status messages
-#=======================================================================
-
-sub emit_bash_with_check
-{
-    my ($handle, $cmd, $msg_success, $msg_error) = @_;
-    emit_bash($handle, "$cmd");
-    print $handle "if [ \"\$?\" -ne \"0\" ]; then\n\techo \"$msg_error\\n\"\nelse\n\techo \"$msg_success\\n\"\nfi\n";
 }
 
 #=======================================================================
