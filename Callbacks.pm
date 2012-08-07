@@ -641,7 +641,8 @@ sub IS_nav_make_install
     # create and generate the installer script
         
     open my $inst, ">$g_install_script";    
-    emit_bash($inst, "#!/bin/bash");    
+    emit_bash($inst, "#!/bin/bash");
+    emit_bash($inst, "set -e");    
     emit_bash($inst, "if [[ \$1 != \"--configure\" ]]; then # This part runs before chroot jail");    
     emit_bash_with_check($inst, "parted -s $g_disk mktable gpt", "parted mktable successful", "parted mktable failed");    
     
