@@ -641,6 +641,7 @@ sub IS_nav_make_install
     }
     
     # add a bios partition to the beginning of the partition table
+    
     unshift(@g_partition_table, "$g_disk:bios:bios:2");
     
     # create and generate the installer script
@@ -699,9 +700,17 @@ sub IS_nav_make_install
         my ($dsk, $mount, $fs, $size) = split /:/;
         given($mount) {
             when('bios') {
-                emit_line($inst, "parted $g_disk set $partnr bios_grub on");                
+                given($g_bootloader) {
+                    when('grub2') {
+                        emit_line($inst, "parted $g_disk set $partnr bios_grub on");                
+                    }
+                    when('syslinux') {
+                        emit_line($inst, "parted $g_disk set $partnr legacy_boot on");                
+                    }
+                }                
             }
             when('boot') {
+                emit_line($inst, "parted $g_disk set $partnr boot on"); # FIXME boot may not exist
                 emit_line($inst, "mkdir /mnt/boot");
                 emit_line($inst, "mount $g_disk$partnr /mnt/boot");
             }
@@ -756,7 +765,7 @@ sub IS_nav_make_install
         given($mount) {            
             when('boot') {                
                 emit_line($inst, "umount /mnt/boot");
-            }
+            }            
             when('home') {
                 emit_line($inst, "umount /mnt/home");            
             }
@@ -766,6 +775,15 @@ sub IS_nav_make_install
             when('dev') {
                 emit_line($inst, "umount /mnt/dev");                                            
             }
+        }        
+    }
+    
+    foreach(@g_partition_table) {
+        my ($dsk, $mount, $fs, $size) = split /:/;
+        given($mount) {                
+            when('root') {                
+                emit_line($inst, "umount /mnt");
+            }        
         }        
     }
     

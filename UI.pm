@@ -47,14 +47,14 @@ sub run()
     
     $win{"MM"}->add('nav', 'Buttonbox', -y => 1, -vertical => 1,
         -buttons  => [
-            { -label => 'Configure keymap', -value => 'ck', -onpress => sub { $win{'CK'}->focus } },
-            { -label => 'Configure network for the live system', -value => 'cn', -onpress => sub { $win{'CN'}->focus } },            
+            { -label => 'Configure keymap (Default: us)', -value => 'ck', -onpress => sub { $win{'CK'}->focus } },
+#            { -label => 'Configure network for the live system', -value => 'cn', -onpress => sub { $win{'CN'}->focus } },            
             { -label => 'Select mount points and filesystem *', -value => 'smp', -onpress => sub { $win{'SMP'}->focus } },
-            { -label => 'Select installation mirrors', -value => 'sm', -onpress => sub { $win{'SM'}->focus } },
+            { -label => 'Select installation mirrors *', -value => 'sm', -onpress => sub { $win{'SM'}->focus } },
             { -label => 'Select packages *', -value => 'sp', -onpress => sub { $win{'SP'}->focus } },
             { -label => 'Configure the new system *', -value => 'cs', -onpress => sub { $win{'CS'}->focus } },
             { -label => 'Configure networking', -value => 'cnet', -onpress => sub { $win{'CNET'}->focus } },
-            { -label => 'Install', -value => 'is', -onpress => sub { $win{'IS'}->focus } },
+            { -label => 'Create installer', -value => 'is', -onpress => sub { $win{'IS'}->focus } },
             { -label => 'Show error log', -value => 'l', -onpress => sub { $win{'L'}->focus } },            
             { -label => 'Quit', -value => 'q', -onpress => sub { $win{'Q'}->focus } }
         ]

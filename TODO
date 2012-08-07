@@ -1,8 +1,11 @@
 Make static IP address work (need to generate bash for this)
 Comment the code
+Allow a partition setup with no separate boot partition (set the boot flag on root instead)
+Make the remaining disk size take the bios partition(s) into account
 Support disks other than sd* and hd* (?)
 Make syslinux work with gpt
 Support for more filesystem types
+Support msdos partition table (?)
 Manual partitioning
 UEFI support
 Make wireless and mobile broadband work
