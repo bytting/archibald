@@ -565,7 +565,7 @@ sub IS_nav_make_install
 {
     use vars qw($g_keymap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
     $g_timezone $g_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
-    $g_domain $g_disk $g_rc_conf $g_locale_default $g_install_script $g_configure_script);
+    $g_domain $g_disk $g_rc_conf $g_locale_default $g_install_script);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -646,6 +646,8 @@ sub IS_nav_make_install
     open INST, ">$g_install_script";    
     print INST "#!/bin/bash\n\n";
     
+    print INST "if [ \$1 != \"--configure\"]; then\n";
+    
     print INST "parted -s $g_disk mktable gpt\n\n";
     
     #max=$(( $(cat $g_disk/size) * 512 / 1024 / 1024 - 1 ))
@@ -686,7 +688,7 @@ sub IS_nav_make_install
         }
         
         if($mount eq 'root') {
-            print INST "mount $g_disk /mnt\n";
+            print INST "mount $g_disk$partnr /mnt\n";
         }
         $partnr++;
     }
@@ -718,6 +720,47 @@ sub IS_nav_make_install
     }
     
     print INST "\n";
+    
+    print INST "pacstrap /mnt base base-devel\n";
+    
+    if($g_wirelesstools) {
+        print INST "pacstrap /mnt wireless_tools netcfg wpa_supplicant wpa_actiond\n";
+    }
+    
+    given($g_bootloader) {
+        when('grub2') {
+            print INST "pacstrap /mnt grub-bios\n";
+        }
+        when('syslinux') {
+            print INST "pacstrap /mnt syslinux\n";
+        }
+    }
+    
+    print INST "\n";
+    
+    print INST "genfstab -p /mnt >> /mnt/etc/fstab\n";
+    
+    print INST "\n";
+    
+    print INST "mv $g_install_script /mnt/$g_install_script\n";
+    
+    print INST "arch-chroot /mnt /$g_install_script --configure\n";
+    
+    print INST "\n";
+    
+    print INST "echo \"Installation was a success\"\n";
+    
+    print INST "\n\nelse\n\n";    
+    
+    # setup vconsole.conf
+    
+    print INST "echo \"KEYMAP=$g_keymap\" > /etc/vconsole.conf\n";
+    print INST "echo \"FONT=\" >> /etc/vconsole.conf\n";
+    print INST "echo \"FONT_MAP=\" >> /etc/vconsole.conf\n";
+    
+    print INST "\n";
+    
+    #setup mirrorlist
     
     if(@g_mirrors) {
         open (my $in, "<", $g_mirrorlist);
@@ -759,38 +802,6 @@ sub IS_nav_make_install
         unlink('./mirrorlist');
     }
     
-    print INST "\n";
-    
-    print INST "pacstrap /mnt base base-devel\n";
-    
-    if($g_wirelesstools) {
-        print INST "pacstrap /mnt wireless_tools netcfg wpa_supplicant wpa_actiond\n";
-    }
-    
-    given($g_bootloader) {
-        when('grub2') {
-            print INST "pacstrap /mnt grub-bios\n";
-        }
-        when('syslinux') {
-            print INST "pacstrap /mnt syslinux\n";
-        }
-    }
-    
-    print INST "\n";
-    
-    print INST "genfstab -p /mnt >> /mnt/etc/fstab\n";
-    
-    open STRAP, ">$g_configure_script";    
-    print STRAP "#!/bin/bash\n\n";        
-    
-    # setup vconsole.conf
-    
-    print STRAP "echo \"KEYMAP=$g_keymap\" > /etc/vconsole.conf\n";
-    print STRAP "echo \"FONT=\" >> /etc/vconsole.conf\n";
-    print STRAP "echo \"FONT_MAP=\" >> /etc/vconsole.conf\n";
-    
-    print STRAP "\n";
-    
     # setup locale
     
     open (my $in, "<", $g_locale_gen);
@@ -819,33 +830,37 @@ sub IS_nav_make_install
     close $in;
     close $out;
     
-    print STRAP "\n";
+    print INST "\n";
     
     open LOCFILE, './locale.gen';
-    print STRAP "cat>$g_locale_gen<<EOF\n";
+    print INST "cat>$g_locale_gen<<EOF\n";
     while(<LOCFILE>) {
-        print STRAP $_;
+        print INST $_;
     }
     close LOCFILE;
-    print STRAP "EOF\n\n";            
+    print INST "EOF\n\n";            
     unlink('./locale.gen');
     
-    print STRAP "locale-gen > /dev/null 2>&1\n";    
+    print INST "locale-gen > /dev/null 2>&1\n";
+    
+    print INST "\n";
             
-    print STRAP "echo \"LANG=$g_locale_lang\" > /etc/locale.conf\n";
+    print INST "echo \"LANG=$g_locale_lang\" > /etc/locale.conf\n";
         
     # setup hostname/hosts
     
     if(defined($g_hostname)) {
-        print STRAP "echo \"$g_hostname\" > /etc/hostname\n";
+        print INST "echo \"$g_hostname\" > /etc/hostname\n";
         
-        print STRAP "echo \"127.0.0.1    localhost.localdomain   localhost   $g_hostname\" > /etc/hosts\n";
-        print STRAP "echo \"::1          localhost.localdomain   localhost   $g_hostname\" >> /etc/hosts\n";
+        print INST "echo \"127.0.0.1    localhost.localdomain   localhost   $g_hostname\" > /etc/hosts\n";
+        print INST "echo \"::1          localhost.localdomain   localhost   $g_hostname\" >> /etc/hosts\n";
         
         if($g_static_ip) {
-            print STRAP "echo \"\$ip  \$hostname.\$domain   \$hostname\" >> /etc/hosts\n";
+            print INST "echo \"\$ip  \$hostname.\$domain   \$hostname\" >> /etc/hosts\n";
         }
     }
+    
+    print INST "\n";
     
     # setup rc.conf
     
@@ -865,49 +880,42 @@ sub IS_nav_make_install
     close $rcout;
     
     open RCFILE, './rc.conf';
-    print STRAP "cat>$g_rc_conf <<EOF\n";
+    print INST "cat>$g_rc_conf <<EOF\n";
     while(<RCFILE>) {
-        print STRAP $_;
+        print INST $_;
     }
     close RCFILE;
-    print STRAP "EOF\n\n";            
+    print INST "EOF\n\n";            
     unlink('./rc.conf');
    
     # setup hardware clock
         
     if($g_localetime) {
-        print STRAP "hwclock --systohc --localtime\n";
+        print INST "hwclock --systohc --localtime\n";
     }
     else {
-        print STRAP "hwclock --systohc --utc\n";
+        print INST "hwclock --systohc --utc\n";
     }
    
     # create initial ramdisk
-    print STRAP "mkinitcpio -p linux\n";
+    print INST "mkinitcpio -p linux\n";
     
     # configure bootloader
     
     given($g_bootloader) {
         when('syslinux') {
-            print STRAP "/usr/sbin/syslinux-install_update -iam\n";
+            print INST "/usr/sbin/syslinux-install_update -iam\n";
         }        
         when('grub2') {
-            print STRAP "grub-install $g_disk\n";
-            print STRAP "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo\n";
-            print STRAP "grub-mkconfig -o /boot/grub/grub.cfg\n";
+            print INST "grub-install $g_disk\n";
+            print INST "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo\n";
+            print INST "grub-mkconfig -o /boot/grub/grub.cfg\n";
         }        
     }    
         
-    print STRAP "passwd\n";
+    print INST "passwd\n";    
     
-    close STRAP;
-    chmod 0755, "$g_configure_script";
-    
-    print INST "mv $g_configure_script /mnt/$g_configure_script\n";
-    
-    print INST "arch-chroot /mnt /$g_configure_script\n";
-    
-    print INST "echo \"Installation was a success\"\n";
+    print INST "fi\n";    
     
     close INST;
     chmod 0755, "$g_install_script";
