@@ -57,4 +57,11 @@ echo "Installing prerequisites, please wait..."
 install_package perl-curses 1
 install_package perl-curses-ui 1
 
+echo "Downloading and extracing archibald, please wait..."
+
+wget https://github.com/corebob/archibald/tarball/master
+mv ./master ./master.tar.gz
+tar -xvzf ./master.tar.gz
+cd corebob*
+
 exec ./archibald.pl
