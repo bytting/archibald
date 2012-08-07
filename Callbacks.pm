@@ -638,6 +638,9 @@ sub IS_nav_make_install
         return;
     }
     
+    # add a bios partition to the beginning of the partition table
+    unshift(@g_partition_table, "$g_disk:bios:bios:2");
+    
     # create and generate the installer script
         
     open my $inst, ">$g_install_script";    
@@ -693,6 +696,9 @@ sub IS_nav_make_install
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         given($mount) {
+            when('bios') {
+                emit_bash_with_check($inst, "parted $g_disk set $partnr bios_grub on");                
+            }
             when('boot') {
                 emit_bash_with_check($inst, "mkdir /mnt/boot", "mkdir sucessful", "mkdir failed");
                 emit_bash_with_check($inst, "mount $g_disk$partnr /mnt/boot", "mount successful", "mount failed");
@@ -736,7 +742,7 @@ sub IS_nav_make_install
     
     emit_bash($inst, "\n");
     
-    emit_bash_with_check($inst, "mv $g_install_script /mnt/$g_install_script", "mv successful", "mv failed");
+    emit_bash_with_check($inst, "cp $g_install_script /mnt/$g_install_script", "cp successful", "cp failed");
     emit_bash_with_check($inst, "arch-chroot /mnt /$g_install_script --configure", "arch-chroot successful", "arch-chroot failed");
     
     emit_bash($inst, "\n");    
@@ -858,12 +864,10 @@ sub IS_nav_make_install
     
     open (my $rcin, "<", $g_rc_conf);
     open (my $rcout, ">", './rc.conf');        
-    
-    my $iface_set = 0;
+        
     while(my $line = <$rcin>) {        
-        if ($line =~ /^interface=/ and defined($g_interface) and !$iface_set) {            
-            print $rcout "interface=$g_interface\n";
-            $iface_set = 1;
+        if ($line =~ /^interface=/ and defined($g_interface)) {            
+            print $rcout "interface=$g_interface\n";            
         }
         else {
             print $rcout $line;
