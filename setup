@@ -52,6 +52,9 @@ function install_package
     fi    
 }
 
+echo "Synchronizing pacman, please wait..."
+pacman -Sy
+
 echo "Installing prerequisites, please wait..."
 
 install_package perl-curses 1
