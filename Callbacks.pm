@@ -648,7 +648,7 @@ sub IS_nav_make_install
     open my $inst, ">$g_install_script";    
     emit_line($inst, "#!/bin/bash");
     emit_line($inst, "set -e");    
-    emit_line($inst, "if [[ \"\$1\" -ne \"--configure\" ]]; then # This part runs before chroot jail");    
+    emit_line($inst, "if [[ \$1 != \"--configure\" ]]; then # This part runs before chroot jail");    
     emit_line($inst, "parted -s $g_disk mktable gpt");    
     
     my $last_mount;    
