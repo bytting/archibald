@@ -75,8 +75,6 @@ sub CK_nav_apply
     
     $g_keymap = (split(/\//, $km))[-1];
     
-    
-    
     `loadkeys $g_keymap`;
     
     if($?) { $info->text("Loading keymap $g_keymap failed. See log for details"); }
@@ -186,8 +184,7 @@ sub SMP_devicelist_change
         $siz -= $tmp;
     }
     
-    $remsize->text($siz);
-    
+    $remsize->text($siz);    
     $mountlist->focus;    
 }
 
@@ -861,9 +858,11 @@ sub IS_nav_make_install
     open (my $rcin, "<", $g_rc_conf);
     open (my $rcout, ">", './rc.conf');        
     
+    my $iface_set = 0;
     while(my $line = <$rcin>) {        
-        if ($line =~ /^interface=/ and defined($g_interface)) {            
+        if ($line =~ /^interface=/ and defined($g_interface) and !$iface_set) {            
             print $rcout "interface=$g_interface\n";
+            $iface_set = 1;
         }
         else {
             print $rcout $line;
