@@ -68,7 +68,7 @@ sub find_zoneinfo
 
 sub emit
 {
-    my ($handle, $cmd) = @_;
+    my ($handle, $cmd) = @_;    
     print $handle $cmd;
 }
 
@@ -79,7 +79,7 @@ sub emit
 sub emit_line
 {
     my ($handle, $cmd) = @_;
-    emit($handle, $cmd . "\n");
+    emit($handle, "$cmd\n");
 }
 
 #=======================================================================

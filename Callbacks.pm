@@ -782,7 +782,7 @@ sub IS_nav_make_install
             }
             
             if(!$found) {
-                if($line !~ /^#/) { print $out "#$line"; }
+                if($line !~ /^#/) { print $out '#' . $line; }
                 else { print $out $line; }
             }        
         }
@@ -791,13 +791,13 @@ sub IS_nav_make_install
         close $out;
                 
         open MIRRORFILE, './mirrorlist';
-        emit_line($inst, "cat>$g_mirrorlist <<EOF");
-        while(<MIRRORFILE>) {
+        emit_line($inst, "cat > $g_mirrorlist << 'EOF'");
+        while(<MIRRORFILE>) {            
             emit($inst, $_);
         }
         close MIRRORFILE;
         emit_line($inst, "EOF");
-        #unlink('./mirrorlist');
+        unlink('./mirrorlist');
     }
     
     # setup locale
@@ -831,7 +831,7 @@ sub IS_nav_make_install
     emit($inst, "\n");
     
     open LOCFILE, './locale.gen';
-    emit_line($inst, "cat>$g_locale_gen<<EOF");
+    emit_line($inst, "cat > $g_locale_gen << 'EOF'");
     while(<LOCFILE>) {
         emit($inst, $_);
     }
@@ -878,7 +878,7 @@ sub IS_nav_make_install
     close $rcout;
     
     open RCFILE, './rc.conf';
-    emit_line($inst, "cat>$g_rc_conf <<EOF");
+    emit_line($inst, "cat > $g_rc_conf << 'EOF'");
     while(<RCFILE>) {
         emit($inst, $_);
     }
