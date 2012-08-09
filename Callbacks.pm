@@ -89,56 +89,6 @@ sub CK_keymaplist_selchange
 }
 
 #=======================================================================
-# Callbacks - Configure network
-#=======================================================================
-
-sub CN_focus
-{
-    my $win = shift;
-    my $info = $win->getobj('info');            
-    my $iflist = $win->getobj('interfacelist');
-    
-    my @values;    
-    my @ipc = `ip addr`;    
-    
-    for (@ipc) {
-        if ( /^\d+:\s*(\w+).*state\s(\w+)/ ) {        
-            my ($if, $state) = ($1, $2);
-            if($if eq 'lo') {
-                next;
-            }
-            push @values, "$if ($state)";            
-        }
-    }
-        
-    $iflist->values(\@values);            
-}
-
-sub CN_nav_updown
-{
-    my $bbox = shift;
-    my $win = $bbox->parent;
-    my $info = $win->getobj('info');        
-    my $iflist = $win->getobj('interfacelist');        
-    my $iface = $iflist->get();
-    if(!defined($iface)) {
-        $info->text("You must select an interface first");
-        return
-    }
-    
-    $iface =~ /(.*)\s/;
-    $iface = $1;    
-    my ($op, $val) = (undef, $bbox->get());    
-    if($val eq 'enable') { $op = 'up' }
-    elsif($val eq 'disable') { $op = 'down' }    
-    
-    `ip link set $iface $op > /dev/null`;
-    
-    if($?) { $info->text("The command '$iface $op' failed") }
-    else { $info->text("The command '$iface $op' was a success") }        
-}
-
-#=======================================================================
 # Callbacks - Select mount points and filesystem
 #=======================================================================
 
@@ -758,6 +708,8 @@ sub IS_nav_make_install
     emit_line($inst, "genfstab -p /mnt >> /mnt/etc/fstab");
     
     emit($inst, "\n");
+    
+    emit_line($inst, "cp /etc/archiso/functions /mnt/etc/archiso/functions");
     
     emit_line($inst, "cp $g_install_script /mnt/$g_install_script");
     emit_line($inst, "arch-chroot /mnt /$g_install_script --configure");

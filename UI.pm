@@ -68,33 +68,9 @@ sub run()
     $win{'CK'}->add('nav', 'Buttonbox', -y => -1,
         -buttons  => [            
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } },            
-            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'CN'}->focus } }
-        ]
-    );            
-    
-    #=======================================================================
-    # UI - Configure network
-    #=======================================================================
-    
-    $win{'CN'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure network for the live system', %win_args, -onFocus => \&CN_focus);
-    
-    $win{'CN'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -text => 'Configure network');
-    
-    $win{'CN'}->add('interfacelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available network interfaces');
-    
-    $win{'CN'}->add('opt', 'Buttonbox', -y => -2,
-        -buttons => [            
-            { -label => '<Enable>', -value => 'enable', -onpress => \&CN_nav_updown },
-            { -label => '<Disable>', -value => 'disable', -onpress => \&CN_nav_updown }
-        ]
-    );
-    
-    $win{'CN'}->add('nav', 'Buttonbox', -y => -1,
-        -buttons => [
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } },            
             { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SMP'}->focus } }
         ]
-    );        
+    );                
     
     #=======================================================================
     # UI - Select mount points and filesystem
@@ -128,7 +104,7 @@ sub run()
     
     $win{'SMP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&SMP_nav_focus,
         -buttons => [
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CN'}->focus } },            
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } },            
             { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SM'}->focus } }
         ]
     );    
