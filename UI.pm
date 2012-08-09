@@ -44,19 +44,13 @@ sub run()
     #=======================================================================
     
     $win{'MM'} = $cui->add(undef, 'Window', -title => 'Archibald: Main menu', %win_args, -onFocus => \&MM_focus);
+
+    $win{'MM'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
     
-    $win{"MM"}->add('nav', 'Buttonbox', -y => 1, -vertical => 1,
-        -buttons  => [
-            { -label => 'Configure keymap (Default: us)', -value => 'ck', -onpress => sub { $win{'CK'}->focus } },
-#            { -label => 'Configure network for the live system', -value => 'cn', -onpress => sub { $win{'CN'}->focus } },            
-            { -label => 'Select mount points and filesystem *', -value => 'smp', -onpress => sub { $win{'SMP'}->focus } },
-            { -label => 'Select installation mirrors *', -value => 'sm', -onpress => sub { $win{'SM'}->focus } },
-            { -label => 'Select packages *', -value => 'sp', -onpress => sub { $win{'SP'}->focus } },
-            { -label => 'Configure the new system *', -value => 'cs', -onpress => sub { $win{'CS'}->focus } },
-            { -label => 'Configure networking', -value => 'cnet', -onpress => sub { $win{'CNET'}->focus } },
-            { -label => 'Create installer', -value => 'is', -onpress => sub { $win{'IS'}->focus } },
-            { -label => 'Show error log', -value => 'l', -onpress => sub { $win{'L'}->focus } },            
-            { -label => 'Quit', -value => 'q', -onpress => sub { $win{'Q'}->focus } }
+    $win{"MM"}->add('nav', 'Buttonbox', -y => -1,
+        -buttons  => [            
+            { -label => '<Quit>', -value => 'quit', -onpress => \&handler_quit },
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'CK'}->focus } }
         ]
     );    
     
@@ -68,12 +62,13 @@ sub run()
     
     $win{'CK'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1);
     
-    $win{'CK'}->add('keymaplist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 9, -vscrollbar => 'right', -border => 1, -title => 'Select keymap');
+    $win{'CK'}->add('keymaplist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 9, -vscrollbar => 'right', -border => 1,
+        -title => 'Select keymap', -onselchange => \&CK_keymaplist_selchange);
     
     $win{'CK'}->add('nav', 'Buttonbox', -y => -1,
-        -buttons  => [
-            { -label => '<Apply>', -value => 'apply', -onpress => \&CK_nav_apply },
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
+        -buttons  => [            
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } },            
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'CN'}->focus } }
         ]
     );            
     
@@ -87,11 +82,17 @@ sub run()
     
     $win{'CN'}->add('interfacelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available network interfaces');
     
+    $win{'CN'}->add('opt', 'Buttonbox', -y => -2,
+        -buttons => [            
+            { -label => '<Enable>', -value => 'enable', -onpress => \&CN_nav_updown },
+            { -label => '<Disable>', -value => 'disable', -onpress => \&CN_nav_updown }
+        ]
+    );
+    
     $win{'CN'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Enable>', -value => 'enable', -onpress => \&CN_nav_updown },
-            { -label => '<Disable>', -value => 'disable', -onpress => \&CN_nav_updown },
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } },            
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SMP'}->focus } }
         ]
     );        
     
@@ -118,11 +119,17 @@ sub run()
     
     $win{'SMP'}->add('parttable', 'Listbox', -x => 0, -y => 9, -width => 64, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
     
+    $win{'SMP'}->add('opt', 'Buttonbox', -y => -2, -onFocus => \&SMP_nav_focus,
+        -buttons => [            
+            { -label => '<Add to configuration>', -value => 'add', -onpress => \&SMP_nav_add },            
+            { -label => '<Clear>', -value => 'clear', -onpress => \&SMP_nav_clear }        
+        ]
+    );
+    
     $win{'SMP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&SMP_nav_focus,
         -buttons => [
-            { -label => '<Add to configuration>', -value => 'add', -onpress => \&SMP_nav_add },            
-            { -label => '<Clear>', -value => 'clear', -onpress => \&SMP_nav_clear },
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CN'}->focus } },            
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SM'}->focus } }
         ]
     );    
     
@@ -136,10 +143,16 @@ sub run()
     
     $win{'SM'}->add('mirrorlist', 'Listbox', -x => 0, -y => 2, -width => -1, -height => 12, -vscrollbar => 'right', -hscrollbar => 'top', -border => 1, -multi => 1, -title => 'Mirror servers');
     
+    $win{'SM'}->add('opt', 'Buttonbox', -y => -2,
+        -buttons => [            
+            { -label => '<Apply selection>', -value => 'apply', -onpress => \&SM_nav_apply }
+        ]
+    );
+    
     $win{'SM'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Apply selection>', -value => 'apply', -onpress => \&SM_nav_apply },
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SMP'}->focus } },    
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SP'}->focus } }
         ]
     );    
     
@@ -155,10 +168,16 @@ sub run()
     
     $win{'SP'}->add('wirelesstoolscb', 'Checkbox', -x => 1, -y => 8, -label => 'Install wireless tools');
     
+    $win{'SP'}->add('opt', 'Buttonbox', -y => -2,
+        -buttons => [            
+            { -label => '<Apply>', -value => 'apply', -onpress => \&SP_nav_apply }
+        ]
+    );
+    
     $win{'SP'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Apply>', -value => 'apply', -onpress => \&SP_nav_apply },
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SM'}->focus } },            
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'CS'}->focus } }
         ]
     );    
     
@@ -176,10 +195,16 @@ sub run()
     $win{'CS'}->add('localelist_lang', 'Radiobuttonbox', -x => 0, -y => 10, -width => 35, -height => 6, -border => 1, -title => 'Language *');    
     $win{'CS'}->add('localetimecb', 'Checkbox', -x => 36, -y => 11, -label => 'Use localtime');    
     
+    $win{'CS'}->add('opt', 'Buttonbox', -y => -2,
+        -buttons => [            
+            { -label => '<Apply>', -value => 'apply', -onpress => \&CS_nav_apply }
+        ]
+    );
+    
     $win{'CS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Apply>', -value => 'apply', -onpress => \&CS_nav_apply },
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SP'}->focus } },    
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'CNET'}->focus } }
         ]
     );    
     
@@ -200,24 +225,16 @@ sub run()
     
     $win{'CNET'}->add('interfacelist', 'Radiobuttonbox', -x => 0, -y => 8, -width => 61, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available network interfaces *');
     
-    $win{'CNET'}->add('nav', 'Buttonbox', -y => -1,
-        -buttons => [
-            { -label => '<Apply>', -value => 'apply', -onpress => \&CNET_nav_apply },
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
+    $win{'CNET'}->add('opt', 'Buttonbox', -y => -2,
+        -buttons => [            
+            { -label => '<Apply>', -value => 'apply', -onpress => \&CNET_nav_apply }        
         ]
     );
     
-    #=======================================================================
-    # UI - Log
-    #=======================================================================
-    
-    $win{'L'} = $cui->add(undef, 'Window', -title => 'Archibald: Showing recent error messages', %win_args, -onFocus => \&L_focus);
-    
-    $win{'L'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
-    
-    $win{'L'}->add('nav', 'Buttonbox', -y => -1,
-        -buttons => [            
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
+    $win{'CNET'}->add('nav', 'Buttonbox', -y => -1,
+        -buttons => [
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CS'}->focus } },            
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'IS'}->focus } }
         ]
     );    
     
@@ -229,34 +246,27 @@ sub run()
     
     $win{'IS'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
     
-    $win{'IS'}->add('nav', 'Buttonbox', -y => -1,
-        -buttons => [
-            { -label => '<Generate installation script>', -value => 'ibs', -onpress => \&IS_nav_make_install },            
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } }
-        ]
-    );    
-    
-    #=======================================================================
-    # UI - Quit
-    #=======================================================================
-    
-    $win{'Q'} = $cui->add(undef, 'Window', -title => 'Archibald: Quit', %win_args, -onFocus => \&Q_focus);
-    
-    $win{'Q'}->add('info', 'Label', -y => 1, -width => -1, -bold => 1, -text => 'Are you sure?');    
-    
-    $win{'Q'}->add('nav', 'Buttonbox', -y => -1,        
-        -buttons  => [
-            { -label => '<Yes>', -value => 'yes', -onpress => \&handler_quit},
-            { -label => '<No>', -value => 'no', -onpress => sub { $win{'MM'}->focus } }
+    $win{'IS'}->add('opt', 'Buttonbox', -y => -2,
+        -buttons => [            
+            { -label => '<Generate installation script>', -value => 'ibs', -onpress => \&IS_nav_make_install }        
+            
         ]
     );
+    
+    $win{'IS'}->add('nav', 'Buttonbox', -y => -1,
+        -buttons => [
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CNET'}->focus } },            
+            { -label => '<Quit>', -value => 'continue', -onpress => \&handler_quit }
+            
+        ]
+    );        
     
     #=======================================================================
     # Driver
     #=======================================================================
     
     # Bind <CTRL+Q> to quit.
-    # $cui->set_binding( \&handler_quit, "\cQ" );
+    $cui->set_binding( \&handler_quit, "\cQ" );
     
     $win{'MM'}->focus;
     $cui->mainloop;

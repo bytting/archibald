@@ -31,7 +31,14 @@ require Functions;
 # Callbacks - Main menu
 #=======================================================================
     
-sub MM_focus {    
+sub MM_focus {
+    my $win = shift;
+    my $viewer = $win->getobj('viewer');
+    my $nav = $win->getobj('nav');
+    
+    $viewer->text("Welcome to Archibald...\nYou can press CTRL+q to quit without saving at any time.\nPress continue to start");
+    
+    $nav->focus;
 }
 
 #=======================================================================
@@ -61,7 +68,7 @@ sub CK_focus
     $info->text('Select a keymap...');
 }
 
-sub CK_nav_apply
+sub CK_keymaplist_selchange
 {
     use vars qw($g_keymap);
     
@@ -554,9 +561,9 @@ sub CNET_nav_apply
 sub IS_focus
 {
     my $win = shift;    
-    my $nav = $win->getobj('nav');
+    my $opt = $win->getobj('opt');
         
-    $nav->focus;
+    $opt->focus;
 }
 
 sub IS_nav_make_install
@@ -960,30 +967,6 @@ sub IS_nav_make_install
     chmod 0755, "$g_install_script";
     
     $viewer->text("Congratulations!\nAn installer has been saved in current working directory as $g_install_script. You may quit and install Arch with the following command: ./$g_install_script");
-}
-
-#=======================================================================
-# Callbacks - Log
-#=======================================================================
-
-sub L_focus
-{
-    my $win = shift;
-    my $info = $win->getobj('viewer');
-    my $nav = $win->getobj('nav');
-    
-    open FILE, "< stderr.log";
-    my @content = <FILE>; close FILE;    
-    $info->text(join('', reverse(@content)));
-    $nav->focus;
-}
-
-#=======================================================================
-# Callbacks - Quit
-#=======================================================================
-
-sub Q_focus
-{    
 }
 
 #=======================================================================
