@@ -709,6 +709,7 @@ sub IS_nav_make_install
     
     emit($inst, "\n");
     
+    emit_line($inst, "mkdir -p /mnt/etc/archiso/");
     emit_line($inst, "cp /etc/archiso/functions /mnt/etc/archiso/functions");
     
     emit_line($inst, "cp $g_install_script /mnt/$g_install_script");
