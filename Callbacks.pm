@@ -797,7 +797,7 @@ sub IS_nav_make_install
         }
         close MIRRORFILE;
         emit_line($inst, "EOF");
-        unlink('./mirrorlist');
+        #unlink('./mirrorlist');
     }
     
     # setup locale
