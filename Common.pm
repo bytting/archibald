@@ -27,6 +27,7 @@ our ($g_keymap,
      $g_bootloader,
      $g_wirelesstools,
      @g_partition_table,
+     @g_available_partitions,
      $g_mirrorlist,
      @g_mirrors,
      $g_timezone_directory,
@@ -44,7 +45,8 @@ our ($g_keymap,
      $g_disk,
      %g_disks,
      @g_mountpoints,
-     $g_install_script);
+     $g_install_script,
+     $g_guided);
 
 # Default values
 $g_keymap = 'us';
@@ -54,7 +56,6 @@ $g_mirrorlist = '/etc/pacman.d/mirrorlist';
 $g_timezone_directory = '/usr/share/zoneinfo/';
 $g_locale_gen = '/etc/locale.gen';
 $g_rc_conf = '/etc/rc.conf';
-@g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
 $g_install_script = 'arch-install';
 
 #=======================================================================

@@ -90,7 +90,7 @@ sub run()
     $win{'SPS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } },            
-            { -label => '<Manual (gdisk)>', -value => 'manual', -onpress => sub { $win{'MP'}->focus } },
+            { -label => '<Manual (gdisk)>', -value => 'manual', -onpress => sub { $win{'SD'}->focus } },
             { -label => '<Guided (Entire disk)>', -value => 'guided', -onpress => sub { $win{'GP'}->focus } }
         ]
     );
@@ -116,27 +116,43 @@ sub run()
     );
     
     #=======================================================================
+    # UI - Select disk
+    #=======================================================================
+    
+    $win{'SD'} = $cui->add(undef, 'Window', -title => 'Archibald: Select disk', %win_args, -onFocus => \&SD_focus);
+
+    $win{'SD'}->add('info', 'Label', %info_args);
+        
+    $win{'SD'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
+        -onchange => \&SD_devicelist_change);
+    
+    $win{'SD'}->add('viewer', 'TextViewer', -x => 0, -y => 8, -width => -1, -height => 9, -bold => 1, -singleline => 0, -border => 1, -title => 'Current disk layout',
+        -wrapping => 1, -vscrollbar => 'right');
+    
+    $win{'SD'}->add('nav', 'Buttonbox', -y => -1,
+        -buttons => [
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SPS'}->focus } },            
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'MP'}->focus } }
+        ]
+    );
+    
+    #=======================================================================
     # UI - Manual partitioning
     #=======================================================================
     
     $win{'MP'} = $cui->add(undef, 'Window', -title => 'Archibald: Select mount points and filesystem', %win_args, -onFocus => \&MP_focus);
 
-    $win{'MP'}->add('info', 'Label', %info_args);
-        
-    $win{'MP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 16, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
-        -onchange => \&MP_devicelist_change, -onFocus => \&MP_devicelist_focus);
+    $win{'MP'}->add('info', 'Label', %info_args);    
 
-    $win{'MP'}->add('mountlist', 'Radiobuttonbox', -x => 16, -y => 2, -width => 16, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Mount points',        
+    $win{'MP'}->add('partlist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 22, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Partitions');
+        
+    $win{'MP'}->add('mountlist', 'Radiobuttonbox', -x => 22, -y => 2, -width => 16, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Mountpoints',        
         -onchange => \&MP_mountlist_change, -onFocus => \&MP_mountlist_focus);
         
-    $win{'MP'}->add('fslist', 'Radiobuttonbox', -x => 32, -y => 2, -width => 16, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
-        -onchange => \&MP_fslist_change, -onFocus => \&MP_fslist_focus, -values => ['ext2', 'ext3', 'ext4', 'swap']);
+    $win{'MP'}->add('fslist', 'Radiobuttonbox', -x => 38, -y => 2, -width => 16, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
+        -onchange => \&MP_fslist_change, -onFocus => \&MP_fslist_focus, -values => ['ext2', 'ext3', 'ext4', 'swap']);    
     
-    $win{'MP'}->add('remsize', 'Label', -x => 50, -y => 2, -width => 16, -bold => 1);
-    
-    $win{'MP'}->add('partsize', 'TextEntry', -x => 48, -y => 4, -width => 16, -border => 1, -title => 'Size (MB)', -onFocus => \&MP_partsize_focus);
-    
-    $win{'MP'}->add('parttable', 'Listbox', -x => 0, -y => 9, -width => 64, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
+    $win{'MP'}->add('parttable', 'Listbox', -x => 0, -y => 7, -width => 64, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
     
     $win{'MP'}->add('opt', 'Buttonbox', -y => -2, -onFocus => \&MP_nav_focus,
         -buttons => [            
@@ -147,7 +163,7 @@ sub run()
     
     $win{'MP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&MP_nav_focus,
         -buttons => [
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SPS'}->focus } },            
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SD'}->focus } },            
             { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SM'}->focus } }
         ]
     );    

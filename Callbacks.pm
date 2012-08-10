@@ -82,6 +82,8 @@ sub CK_nav_apply
     
     $g_keymap = (split(/\//, $km))[-1];
     
+    `loadkeys $g_keymap`;
+    
     $info->text("Keymap $g_keymap selected");    
 }
 
@@ -103,14 +105,16 @@ sub SPS_focus
 
 sub GP_focus
 {
-    use vars qw(%g_disks @g_mountpoints);
+    use vars qw(%g_disks $g_guided);
     
     my $win = shift;    
     my $info = $win->getobj('info');    
     my $devicelist = $win->getobj('devicelist');
     my $parttable = $win->getobj('parttable');    
 
-    my (@sd_disks, @hd_disks, @disks);
+    $g_guided = 1;
+    
+    my (@sd_disks, @hd_disks);
     @sd_disks = glob("/sys/block/sd*");
     @hd_disks = glob("/sys/block/hd*");
     foreach (@sd_disks, @hd_disks) {
@@ -130,7 +134,7 @@ sub GP_focus
 
 sub GP_devicelist_change
 {
-    use vars qw(%g_disks @g_mountpoints);
+    use vars qw(%g_disks @g_partition_table $g_disk);
     
     my $bbox = shift;
     my $win = $bbox->parent;    
@@ -140,49 +144,40 @@ sub GP_devicelist_change
     my $devicelist = $win->getobj('devicelist');    
     my $device = $devicelist->get();    
     
+    $g_disk = "/dev/$device";
     my $size = $g_disks{$device};
-    if($size < 8202) {
+    if($size < 7250) {
         $info->text('Disk is too small for guided partitioning');
         return;
     }
         
     my $rest = int($g_disks{$device} - 2 - 200 - 2048);
     my $partnr = 1;
-    my $bios = "/dev/$device" . $partnr++ . ":bios:bios:2";
-    my $boot = "/dev/$device" . $partnr++ . ":boot:ext2:200";    
-    my $swap = "/dev/$device" . $partnr++ . ":swap:swap:2048";
-    my $root = "/dev/$device" . $partnr++ . ":root:ext4:$rest";
+    my $bios = "$g_disk" . $partnr++ . ":bios:bios:2";
+    my $boot = "$g_disk" . $partnr++ . ":boot:ext2:200";    
+    my $swap = "$g_disk" . $partnr++ . ":swap:swap:2048";
+    my $root = "$g_disk" . $partnr++ . ":root:ext4:$rest";
     
-    @g_mountpoints = ($bios, $boot, $swap, $root);
+    @g_partition_table = ($bios, $boot, $swap, $root);
     
-    $parttable->values(\@g_mountpoints);
+    $parttable->values(\@g_partition_table);
     $parttable->draw(0);
     $nav->focus;
 }
 
 #=======================================================================
-# Callbacks - Manual partitioning
+# Callbacks - Select disk
 #=======================================================================
 
-sub MP_focus
+sub SD_focus
 {
-    use vars qw(%g_disks @g_mountpoints);
+    use vars qw(%g_disks);
     
-    my $win = shift;
-    my $cui = $win->parent;
+    my $win = shift;    
     my $info = $win->getobj('info');
-    my $devicelist = $win->getobj('devicelist');    
-    my $mountlist = $win->getobj('mountlist');
-    my $fslist = $win->getobj('fslist');    
-    
-    $cui->leave_curses();
-    system("clear && gdisk /dev/sda");
-    $cui->reset_curses();
-    
-    $mountlist->clear_selection();
-    $fslist->clear_selection();
-    
-    my (@sd_disks, @hd_disks, @disks);
+    my $devicelist = $win->getobj('devicelist');        
+
+    my (@sd_disks, @hd_disks);
     @sd_disks = glob("/sys/block/sd*");
     @hd_disks = glob("/sys/block/hd*");
     foreach (@sd_disks, @hd_disks) {
@@ -194,41 +189,68 @@ sub MP_focus
         }
     }    
         
-    $devicelist->values(keys %g_disks);
-    $mountlist->values(\@g_mountpoints);
+    $devicelist->values(keys %g_disks);    
     $devicelist->focus;
-    $info->text('Select a device...');
+    $info->text('Select a disk...');
 }
 
-sub MP_devicelist_change
+sub SD_devicelist_change
 {
-    use vars qw(%g_disks @g_partition_table);
+    use vars qw($g_disk);
     
     my $bbox = shift;
     my $win = $bbox->parent;
     my $devicelist = $win->getobj('devicelist');
-    my $remsize = $win->getobj('remsize');
-    my $mountlist = $win->getobj('mountlist');
+    my $viewer = $win->getobj('viewer');    
     
     my $dev = $devicelist->get();
-    my $siz = $g_disks{$dev};
-    my $tmp;
-    foreach(@g_partition_table) {
-        $tmp = (split(/:/, $_))[-1];
-        $siz -= $tmp;
-    }
-    
-    $remsize->text($siz);    
-    $mountlist->focus;    
+    $g_disk = "/dev/$dev";
+        
+    my $out = `parted $g_disk print`;    
+    $viewer->text($out);
 }
 
-sub MP_devicelist_focus
+#=======================================================================
+# Callbacks - Manual partitioning
+#=======================================================================
+
+sub MP_focus
 {
-    my $bbox = shift;
-    my $win = $bbox->parent;
-    my $info = $win->getobj('info');
+    use vars qw($g_disk @g_mountpoints @g_available_partitions $g_guided @g_partition_table);
     
-    $info->text('Select a device...');
+    my $win = shift;
+    my $cui = $win->parent;
+    my $info = $win->getobj('info');
+    my $partlist = $win->getobj('partlist');
+    my $mountlist = $win->getobj('mountlist');
+    my $fslist = $win->getobj('fslist');    
+    
+    $g_guided = 0;
+    @g_partition_table = ();
+    
+    $cui->leave_curses();
+    system("clear && gdisk $g_disk");
+    $cui->reset_curses();
+    
+    $mountlist->clear_selection();
+    $fslist->clear_selection();
+    
+    my @pi;
+    my @p = `parted $g_disk print`;
+    foreach(@p) {
+        if(/^\s\d\s/) {
+            s/^\s*//;
+           @pi = split(/\s+/, $_);
+           push @g_available_partitions, "$g_disk$pi[0]";
+        }
+    }
+    
+    @g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
+    
+    $partlist->values(\@g_available_partitions);
+    $mountlist->values(\@g_mountpoints);    
+    
+    $info->text('Select a mountpoint...');
 }
 
 sub MP_mountlist_change
@@ -268,15 +290,6 @@ sub MP_fslist_focus
     $info->text('Select a file system type...');
 }
  
-sub MP_partsize_focus
-{
-    my $bbox = shift;
-    my $win = $bbox->parent;
-    my $info = $win->getobj('info');
-    
-    $info->text('Enter a partition size in MB...');
-}
- 
 sub MP_nav_focus
 {
     my $bbox = shift;
@@ -288,45 +301,24 @@ sub MP_nav_focus
  
 sub MP_nav_add
 {
-    use vars qw(@g_partition_table $g_disk %g_disks @g_mountpoints);
+    use vars qw(@g_partition_table @g_mountpoints);
     
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
     my $remsize = $win->getobj('remsize');    
-    my ($devicelist, $mountlist, $fslist, $partsize, $parttable) = (
-        $win->getobj('devicelist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
+    my ($partlist, $mountlist, $fslist, $partsize, $parttable) = (
+        $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
     );                
     
-    my $dev = $devicelist->get();
-    my $dev_path = "/dev/$dev";
-    if(defined($g_disk)) {
-        if($dev_path ne $g_disk) {
-            $info->text("Only one device can be used ($g_disk chosen)");
-            return;
-        }
-    }    
-    
-    my $siz = $g_disks{$dev};
-    my $tmp;
-    foreach(@g_partition_table) {
-        $tmp = (split(/:/, $_))[-1];
-        $siz -= $tmp;
-    }
-    
-    my $new_size = $partsize->get();
-    if($siz - $new_size < 0) {
-        $info->text("Not enough space on $g_disk");
-        return;
-    }    
-    
-    $remsize->text($siz - $new_size);
-    
-    $g_disk = "/dev/" . $devicelist->get();
-    my $entry = $g_disk . ':' . $mountlist->get() . ':' . $fslist->get() . ':' . $new_size;
+    my $dev = $partlist->get();    
+    my $entry = $dev . ':' . $mountlist->get() . ':' . $fslist->get();
     
     push @g_partition_table, $entry;
-        
+            
+    @g_available_partitions = grep { $_ ne $dev } @g_available_partitions;
+    $partlist->values(\@g_available_partitions);
+    
     my $item = $mountlist->get();
     @g_mountpoints = grep { $_ ne $item } @g_mountpoints;
     $mountlist->values(\@g_mountpoints);
@@ -334,10 +326,9 @@ sub MP_nav_add
     $parttable->values(\@g_partition_table);
     
     $fslist->clear_selection();
-    $partsize->text('');
     
     $parttable->draw(0);     
-    $devicelist->focus;
+    $partlist->focus;
     
     $info->text('Entry added...');
 }
@@ -347,23 +338,18 @@ sub MP_nav_clear
     use vars qw(@g_partition_table);
     
     my $bbox = shift;
-    my $win = $bbox->parent;
-    my ($devicelist, $parttable) = ($win->getobj('devicelist'), $win->getobj('parttable'));
-    my ($mountlist, $fslist) = ($win->getobj('mountlist'), $win->getobj('fslist'));
-    my $partsize = $win->getobj('partsize');
-    my $remsize = $win->getobj('remsize');
-        
-    $devicelist->clear_selection();
+    my $win = $bbox->parent;    
+    my ($partlist, $mountlist, $fslist) = ($win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'));
+    my $parttable = $win->getobj('parttable');
+            
     $mountlist->clear_selection();
-    @g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
+    @g_mountpoints = ('bios', 'boot', 'swap', 'root', 'home', 'usr', 'var', 'dev', 'sys');
     $mountlist->values(\@g_mountpoints);
-    $fslist->clear_selection();
-    $partsize->text('');
-    $remsize->text('');
+    $fslist->clear_selection();    
     @g_partition_table = ();    
     $parttable->values(\@g_partition_table);
     $parttable->draw(0);    
-    $devicelist->focus;
+    $partlist->focus;
 }
 
 #=======================================================================
@@ -628,7 +614,7 @@ sub IS_nav_make_install
 {
     use vars qw($g_keymap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
     $g_timezone $g_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
-    $g_domain $g_disk $g_rc_conf $g_locale_default $g_install_script);
+    $g_domain $g_disk $g_rc_conf $g_locale_default $g_install_script $g_guided);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -649,13 +635,7 @@ sub IS_nav_make_install
     if(!defined($g_bootloader)) {
         $viewer->text('Bootloader undefined');
         return;
-    }
-    else {
-        if($g_bootloader eq 'syslinux') { # FIXME
-            $viewer->text('Sorry, the syslinux bootloader is not supported yet');
-            return;
-        }
-    }
+    }    
     
     if(!@g_partition_table) {
         $viewer->text('Partition table is empty');
@@ -698,12 +678,18 @@ sub IS_nav_make_install
         }
     }
     
-    # make sure the root partition is set
+    # make sure the bios and root partitions are set
     
-    my $root_found = 0;
+    my ($bios_found, $root_found) = (0, 0);
     foreach(@g_partition_table) {
         my ($dsk, $mount, $fs, $size) = split /:/;
         if($mount eq 'root') { $root_found = 1; }
+        elsif($mount eq 'bios') { $bios_found = 1; }
+    }
+    
+    if(!$bios_found) {
+        $viewer->text('No bios partition found');
+        return;
     }
     
     if(!$root_found) {
@@ -711,87 +697,84 @@ sub IS_nav_make_install
         return;
     }
     
-    # add a bios partition to the beginning of the partition table
-    
-    unshift(@g_partition_table, "$g_disk:bios:bios:2");
-    
     # create and generate the installer script
         
     open my $inst, ">$g_install_script";    
     emit_line($inst, "#!/bin/bash");
     emit_line($inst, "set -e");    
-    emit_line($inst, "if [[ \$1 != \"--configure\" ]]; then # This part runs before chroot");    
-    emit_line($inst, "parted -s $g_disk mktable gpt");    
+    emit_line($inst, "if [[ \$1 != \"--configure\" ]]; then # This part runs before chroot");
     
-    my $last_mount;    
-    foreach(@g_partition_table) {
-        my ($dsk, $mount, $fs, $size) = split /:/;
-        if(defined($last_mount)) {
-            emit_line($inst, "$mount=\$((\$$last_mount + $size))");
-            emit_line($inst, "parted $g_disk unit MiB mkpart primary \$$last_mount \$$mount");
+    if($g_guided) {    
+        emit_line($inst, "parted -s $g_disk mktable gpt");
+        
+        my $last_mountpoint;    
+        foreach(@g_partition_table) {
+            my ($partition, $mountpoint, $filesystem, $size) = split /:/;
+            if(defined($last_mountpoint)) {
+                emit_line($inst, "$mountpoint=\$((\$$last_mountpoint + $size))");
+                emit_line($inst, "parted $g_disk unit MiB mkpart primary \$$last_mountpoint \$$mountpoint");
+            }
+            else {
+                emit_line($inst, "$mountpoint=\$((1 + $size))");
+                emit_line($inst, "parted $g_disk unit MiB mkpart primary 1 \$$mountpoint");
+            }        
+            $last_mountpoint = $mountpoint;
         }
-        else {
-            emit_line($inst, "$mount=\$((1 + $size))");
-            emit_line($inst, "parted $g_disk unit MiB mkpart primary 1 \$$mount");
-        }        
-        $last_mount = $mount;
     }
     
     emit($inst, "\n");
-    
-    my $partnr = 1;
+        
     foreach(@g_partition_table) {
-        my ($dsk, $mount, $fs, $size) = split /:/;
-        given($fs) {
+        my ($partition, $mountpoint, $filesystem, $size) = split /:/;
+        given($filesystem) {
             when('ext2') {
-                emit_line($inst, "mkfs.ext2 $g_disk$partnr");
+                emit_line($inst, "mkfs.ext2 $partition");
             }
             when('ext3') {
-                emit_line($inst, "mkfs.ext3 $g_disk$partnr");
+                emit_line($inst, "mkfs.ext3 $partition");
             }
             when('ext4') {
-                emit_line($inst, "mkfs.ext4 $g_disk$partnr");
+                emit_line($inst, "mkfs.ext4 $partition");
             }
             when('swap') {
-                emit_line($inst, "mkswap $g_disk$partnr");
-                emit_line($inst, "swapon $g_disk$partnr");
+                emit_line($inst, "mkswap $partition");
+                emit_line($inst, "swapon $partition");
             }
         }
         
-        if($mount eq 'root') {
-            emit_line($inst, "mount $g_disk$partnr /mnt");
-        }
-        $partnr++;
+        if($mountpoint eq 'root') {
+            emit_line($inst, "mount $partition /mnt");
+        }        
     }
     
     emit($inst, "\n");    
-    
-    $partnr = 1;
+        
     foreach(@g_partition_table) {
-        my ($dsk, $mount, $fs, $size) = split /:/;
-        given($mount) {
+        my ($partition, $mountpoint, $filesystem, $size) = split /:/;
+        $partition =~ /.*(\d)$/;
+        my $partition_number = $1;
+        given($mountpoint) {
             when('bios') {                
-                emit_line($inst, "parted $g_disk set $partnr bios_grub on");                                            
+                emit_line($inst, "parted $g_disk set $partition_number bios_grub on");                                            
             }
             when('boot') {
-                emit_line($inst, "parted $g_disk set $partnr boot on"); # FIXME boot may not exist
+                emit_line($inst, "parted $g_disk set $partition_number boot on"); # FIXME boot may not exist
                 emit_line($inst, "mkdir /mnt/boot");
-                emit_line($inst, "mount $g_disk$partnr /mnt/boot");
+                emit_line($inst, "mount $partition /mnt/boot");
             }
             when('home') {
                 emit_line($inst, "mkdir /mnt/home");
-                emit_line($inst, "mount $g_disk$partnr /mnt/home");
+                emit_line($inst, "mount $partition /mnt/home");
             }
             when('var') {
                 emit_line($inst, "mkdir /mnt/var");
-                emit_line($inst, "mount $g_disk$partnr /mnt/var");
+                emit_line($inst, "mount $partition /mnt/var");
             }
             when('dev') {
                 emit_line($inst, "mkdir /mnt/dev");
-                emit_line($inst, "mount $g_disk$partnr /mnt/dev");
+                emit_line($inst, "mount $partition /mnt/dev");
             }
-        }
-        $partnr++;
+        }        
     }
     
     emit($inst, "\n");    
@@ -1029,7 +1012,7 @@ sub IS_nav_make_install
     close $inst;
     chmod 0755, "$g_install_script";
     
-    $viewer->text("Congratulations!\nAn installer has been saved in current working directory as $g_install_script. You may quit and install Arch with the following command: ./$g_install_script");
+    $viewer->text("Congratulations!\nAn installer has been saved as $g_install_script. You may quit and install Arch with the following command: ./$g_install_script");
 }
 
 #=======================================================================
