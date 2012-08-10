@@ -6,9 +6,9 @@ Anyone who are familiar with perl can participate by adding features, fixing bug
 or maybe refactoring existing code.
 
 The basic idea is that the archibald installer should generate a bash installer script.
-This makes it relatively easy to work with as you can develope the software on pretty
+This makes it relatively easy to work with as you can develop the software on pretty
 much any computer and manually inspect the generated bash installer without going
-through the process of testing it in virtualbox, or whatever, every time a change has been made.
+through the process of testing it on a virtual machine every time a change has been made.
 Work on the generated bash script until it looks promising, then give it a test.
 
 Another reason for generating a standalone installer is that it may come in handy if you are
@@ -33,7 +33,7 @@ curses event loop.
 
 Callbacks.pl:
 This file contains all the callback routines referenced in UI.pl
-Along with UI.pl this file is contians the meat of the application.
+Along with UI.pl this file contians the meat of the application.
 
 Functions.pl:
 This file contains helper functions used in Callback.pl

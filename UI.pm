@@ -27,11 +27,12 @@ require Callbacks;
 
 my $cui;
 my %win = ();
-my %win_args = (-border => 1, -titlereverse => 0, -pad => 1, -ipad => 1, -bfg => 'red', -tfg => 'green' );
+my %win_args = (-border => 1, -titlereverse => 0, -pad => 1, -ipad => 1, -bfg => 'red', -tfg => 'green');
+my %info_args = (-x => 0, -y => 0, -width => -1, -bold => 1, -fg => 'red');
 
 sub handler_quit()
 {
-    $cui->mainloopExit() if defined($cui);
+    $cui->mainloopExit() if defined($cui);    
     exit(0);
 }
 
@@ -45,7 +46,8 @@ sub run()
     
     $win{'MM'} = $cui->add(undef, 'Window', -title => 'Archibald: Main menu', %win_args, -onFocus => \&MM_focus);
 
-    $win{'MM'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
+    $win{'MM'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0,
+        -wrapping => 1, -vscrollbar => 'right', -fg => 'green');
     
     $win{"MM"}->add('nav', 'Buttonbox', -y => -1,
         -buttons  => [            
@@ -58,53 +60,94 @@ sub run()
     # UI - Configure keymap
     #=======================================================================
     
-    $win{'CK'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure keymap for the live system', %win_args, -onFocus => \&CK_focus);
+    $win{'CK'} = $cui->add(undef, 'Window', -title => 'Archibald: Select keymap', %win_args, -onFocus => \&CK_focus);
     
-    $win{'CK'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1);
+    $win{'CK'}->add('info', 'Label', %info_args);
     
-    $win{'CK'}->add('keymaplist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 9, -vscrollbar => 'right', -border => 1,
-        -title => 'Select keymap', -onselchange => \&CK_keymaplist_selchange);
+    $win{'CK'}->add('keymaplist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 9, -vscrollbar => 'right', -border => 1, -title => 'Available keymaps');
+    
+    $win{'CK'}->add('opt', 'Buttonbox', -y => -2,
+        -buttons  => [                        
+            { -label => '<Apply>', -value => 'apply', -onpress => \&CK_nav_apply }
+        ]
+    );
     
     $win{'CK'}->add('nav', 'Buttonbox', -y => -1,
         -buttons  => [            
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } },            
-            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SMP'}->focus } }
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SPS'}->focus } }
         ]
     );                
     
     #=======================================================================
-    # UI - Select mount points and filesystem
+    # UI - Select partitioning scheme
     #=======================================================================
     
-    $win{'SMP'} = $cui->add(undef, 'Window', -title => 'Archibald: Select mount points and filesystem', %win_args, -onFocus => \&SMP_focus);
+    $win{'SPS'} = $cui->add(undef, 'Window', -title => 'Archibald: Select partitioning scheme', %win_args, -onFocus => \&SPS_focus);
 
-    $win{'SMP'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1);
-        
-    $win{'SMP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 16, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
-        -onchange => \&SMP_devicelist_change, -onFocus => \&SMP_devicelist_focus);
-
-    $win{'SMP'}->add('mountlist', 'Radiobuttonbox', -x => 16, -y => 2, -width => 16, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Mount points',        
-        -onchange => \&SMP_mountlist_change, -onFocus => \&SMP_mountlist_focus);
-        
-    $win{'SMP'}->add('fslist', 'Radiobuttonbox', -x => 32, -y => 2, -width => 16, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
-        -onchange => \&SMP_fslist_change, -onFocus => \&SMP_fslist_focus, -values => ['ext2', 'ext3', 'ext4', 'swap']);
+    $win{'SPS'}->add('info', 'Label', %info_args);        
     
-    $win{'SMP'}->add('remsize', 'Label', -x => 50, -y => 2, -width => 16, -bold => 1);
-    
-    $win{'SMP'}->add('partsize', 'TextEntry', -x => 48, -y => 4, -width => 16, -border => 1, -title => 'Size (MB)', -onFocus => \&SMP_partsize_focus);
-    
-    $win{'SMP'}->add('parttable', 'Listbox', -x => 0, -y => 9, -width => 64, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
-    
-    $win{'SMP'}->add('opt', 'Buttonbox', -y => -2, -onFocus => \&SMP_nav_focus,
-        -buttons => [            
-            { -label => '<Add to configuration>', -value => 'add', -onpress => \&SMP_nav_add },            
-            { -label => '<Clear>', -value => 'clear', -onpress => \&SMP_nav_clear }        
+    $win{'SPS'}->add('nav', 'Buttonbox', -y => -1,
+        -buttons => [
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } },            
+            { -label => '<Manual (gdisk)>', -value => 'manual', -onpress => sub { $win{'MP'}->focus } },
+            { -label => '<Guided (Entire disk)>', -value => 'guided', -onpress => sub { $win{'GP'}->focus } }
         ]
     );
     
-    $win{'SMP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&SMP_nav_focus,
+    #=======================================================================
+    # UI - Guided partitioning
+    #=======================================================================
+    
+    $win{'GP'} = $cui->add(undef, 'Window', -title => 'Archibald: Guided partitioning', %win_args, -onFocus => \&GP_focus);
+
+    $win{'GP'}->add('info', 'Label', %info_args);
+    
+    $win{'GP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 16, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
+        -onchange => \&GP_devicelist_change);
+    
+    $win{'GP'}->add('parttable', 'Listbox', -x => 0, -y => 9, -width => -1, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Partition | Mountpoint | Filesystem | Size (MB)');
+    
+    $win{'GP'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } },            
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SPS'}->focus } },
+            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SM'}->focus } }
+        ]
+    );
+    
+    #=======================================================================
+    # UI - Manual partitioning
+    #=======================================================================
+    
+    $win{'MP'} = $cui->add(undef, 'Window', -title => 'Archibald: Select mount points and filesystem', %win_args, -onFocus => \&MP_focus);
+
+    $win{'MP'}->add('info', 'Label', %info_args);
+        
+    $win{'MP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 16, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
+        -onchange => \&MP_devicelist_change, -onFocus => \&MP_devicelist_focus);
+
+    $win{'MP'}->add('mountlist', 'Radiobuttonbox', -x => 16, -y => 2, -width => 16, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Mount points',        
+        -onchange => \&MP_mountlist_change, -onFocus => \&MP_mountlist_focus);
+        
+    $win{'MP'}->add('fslist', 'Radiobuttonbox', -x => 32, -y => 2, -width => 16, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
+        -onchange => \&MP_fslist_change, -onFocus => \&MP_fslist_focus, -values => ['ext2', 'ext3', 'ext4', 'swap']);
+    
+    $win{'MP'}->add('remsize', 'Label', -x => 50, -y => 2, -width => 16, -bold => 1);
+    
+    $win{'MP'}->add('partsize', 'TextEntry', -x => 48, -y => 4, -width => 16, -border => 1, -title => 'Size (MB)', -onFocus => \&MP_partsize_focus);
+    
+    $win{'MP'}->add('parttable', 'Listbox', -x => 0, -y => 9, -width => 64, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
+    
+    $win{'MP'}->add('opt', 'Buttonbox', -y => -2, -onFocus => \&MP_nav_focus,
+        -buttons => [            
+            { -label => '<Add to configuration>', -value => 'add', -onpress => \&MP_nav_add },            
+            { -label => '<Clear>', -value => 'clear', -onpress => \&MP_nav_clear }        
+        ]
+    );
+    
+    $win{'MP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&MP_nav_focus,
+        -buttons => [
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SPS'}->focus } },            
             { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SM'}->focus } }
         ]
     );    
@@ -115,7 +158,7 @@ sub run()
     
     $win{'SM'} = $cui->add(undef, 'Window', -title => 'Archibald: Select installation mirrors', %win_args, -onFocus => \&SM_focus);
     
-    $win{'SM'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -title => 'Select the mirrors you want to enable');
+    $win{'SM'}->add('info', 'Label', %info_args, -title => 'Select the mirrors you want to enable');
     
     $win{'SM'}->add('mirrorlist', 'Listbox', -x => 0, -y => 2, -width => -1, -height => 12, -vscrollbar => 'right', -hscrollbar => 'top', -border => 1, -multi => 1, -title => 'Mirror servers');
     
@@ -127,7 +170,7 @@ sub run()
     
     $win{'SM'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SMP'}->focus } },    
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'GP'}->focus } },    
             { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SP'}->focus } }
         ]
     );    
@@ -138,7 +181,7 @@ sub run()
     
     $win{'SP'} = $cui->add(undef, 'Window', -title => 'Archibald: Install base system', %win_args, -onFocus => \&SP_focus);
     
-    $win{'SP'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -text => 'Select basic packages');    
+    $win{'SP'}->add('info', 'Label', %info_args, -text => 'Select basic packages');    
     
     $win{'SP'}->add('bootloaderlist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Available bootloaders');
     
@@ -163,7 +206,7 @@ sub run()
     
     $win{'CS'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure the new system', %win_args, -onFocus => \&CS_focus);
     
-    $win{'CS'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -text => 'Marked fields are required');    
+    $win{'CS'}->add('info', 'Label', %info_args, -text => 'Marked fields are required');    
         
     $win{'CS'}->add('timezonelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 35, -height => 8, -vscrollbar => 'right', -border => 1, -title => 'Timezone *');    
     $win{'CS'}->add('localelist', 'Listbox', -x => 36, -y => 2, -width => 35, -height => 8, -vscrollbar => 'right', -border => 1, -multi => 1, -title => 'Locales *');
@@ -188,18 +231,19 @@ sub run()
     # UI - Configure networking
     #=======================================================================
     
-    $win{'CNET'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure the new system', %win_args, -onFocus => \&CNET_focus);
+    $win{'CNET'} = $cui->add(undef, 'Window', -title => 'Archibald: Configure networking', %win_args, -onFocus => \&CNET_focus);
     
-    $win{'CNET'}->add('info', 'Label', -x => 0, -y => 0, -width => -1, -bold => 1, -text => 'Marked fields are required');    
+    $win{'CNET'}->add('info', 'Label', %info_args, -text => 'Marked fields are required');    
         
-    $win{'CNET'}->add('hostnameentry', 'TextEntry', -x => 0, -y => 2, -width => 30, -border => 1, -title => 'Hostname *');
+    $win{'CNET'}->add('interfacelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 61, -height => 6, -vscrollbar => 'right',
+        -border => 1, -title => 'Available network interfaces', -onselchange => \&CNET_interfacelist_changed);
     
-    $win{'CNET'}->add('staticipcb', 'Checkbox', -x => 34, -y => 3, -label => 'Use static ip', -checked => 0, -onchange => \&CNET_staticip_changed);        
+    $win{'CNET'}->add('hostnameentry', 'TextEntry', -x => 0, -y => 8, -width => 30, -border => 1, -title => 'Hostname');
     
-    $win{'CNET'}->add('ipentry', 'TextEntry', -x => 0, -y => 5, -width => 30, -border => 1, -title => 'IP Address');    
-    $win{'CNET'}->add('domainentry', 'TextEntry', -x => 31, -y => 5, -width => 30, -border => 1, -title => 'Domain', -text => 'localdomain');
+    $win{'CNET'}->add('staticipcb', 'Checkbox', -x => 34, -y => 9, -label => 'Use static ip', -checked => 0, -onchange => \&CNET_staticip_changed);        
     
-    $win{'CNET'}->add('interfacelist', 'Radiobuttonbox', -x => 0, -y => 8, -width => 61, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available network interfaces *');
+    $win{'CNET'}->add('ipentry', 'TextEntry', -x => 0, -y => 11, -width => 30, -border => 1, -title => 'IP Address');    
+    $win{'CNET'}->add('domainentry', 'TextEntry', -x => 31, -y => 11, -width => 30, -border => 1, -title => 'Domain', -text => 'localdomain');
     
     $win{'CNET'}->add('opt', 'Buttonbox', -y => -2,
         -buttons => [            
@@ -220,7 +264,8 @@ sub run()
     
     $win{'IS'} = $cui->add(undef, 'Window', -title => 'Archibald: Reboot system', %win_args, -onFocus => \&IS_focus);
     
-    $win{'IS'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0, -wrapping => 1, -border => 1, -vscrollbar => 'right');
+    $win{'IS'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0,
+        -wrapping => 1, -vscrollbar => 'right');
     
     $win{'IS'}->add('opt', 'Buttonbox', -y => -2,
         -buttons => [            

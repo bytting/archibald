@@ -68,7 +68,7 @@ sub CK_focus
     $info->text('Select a keymap...');
 }
 
-sub CK_keymaplist_selchange
+sub CK_nav_apply
 {
     use vars qw($g_keymap);
     
@@ -82,25 +82,102 @@ sub CK_keymaplist_selchange
     
     $g_keymap = (split(/\//, $km))[-1];
     
-    `loadkeys $g_keymap`;
-    
-    if($?) { $info->text("Loading keymap $g_keymap failed. See log for details"); }
-    else { $info->text("Keymap $g_keymap loaded successfully"); }    
+    $info->text("Keymap $g_keymap selected");    
 }
 
 #=======================================================================
-# Callbacks - Select mount points and filesystem
+# Callbacks - Select partitioning scheme
 #=======================================================================
 
-sub SMP_focus
+sub SPS_focus
+{    
+    my $win = shift;
+    my $info = $win->getobj('info');    
+            
+    $info->text('Select a partitioning scheme');
+}
+
+#=======================================================================
+# Callbacks - Guided partitioning
+#=======================================================================
+
+sub GP_focus
+{
+    use vars qw(%g_disks @g_mountpoints);
+    
+    my $win = shift;    
+    my $info = $win->getobj('info');    
+    my $devicelist = $win->getobj('devicelist');
+    my $parttable = $win->getobj('parttable');    
+
+    my (@sd_disks, @hd_disks, @disks);
+    @sd_disks = glob("/sys/block/sd*");
+    @hd_disks = glob("/sys/block/hd*");
+    foreach (@sd_disks, @hd_disks) {
+        open FILE, "<$_/size";
+        my $contents = do { local $/; <FILE> };
+        if($contents > 0) {
+            s/^\/sys\/block\///;
+            $g_disks{$_} = $contents * 512 / 1000 / 1000 - 1;
+        }
+    }    
+        
+    $devicelist->values(keys %g_disks);
+    $parttable->values([]);
+    $devicelist->focus;
+    $info->text('Select a disk');    
+}
+
+sub GP_devicelist_change
+{
+    use vars qw(%g_disks @g_mountpoints);
+    
+    my $bbox = shift;
+    my $win = $bbox->parent;    
+    my $info = $win->getobj('info');
+    my $nav = $win->getobj('nav');
+    my $parttable = $win->getobj('parttable');
+    my $devicelist = $win->getobj('devicelist');    
+    my $device = $devicelist->get();    
+    
+    my $size = $g_disks{$device};
+    if($size < 8202) {
+        $info->text('Disk is too small for guided partitioning');
+        return;
+    }
+        
+    my $rest = int($g_disks{$device} - 2 - 200 - 2048);
+    my $partnr = 1;
+    my $bios = "/dev/$device" . $partnr++ . ":bios:bios:2";
+    my $boot = "/dev/$device" . $partnr++ . ":boot:ext2:200";    
+    my $swap = "/dev/$device" . $partnr++ . ":swap:swap:2048";
+    my $root = "/dev/$device" . $partnr++ . ":root:ext4:$rest";
+    
+    @g_mountpoints = ($bios, $boot, $swap, $root);
+    
+    $parttable->values(\@g_mountpoints);
+    $parttable->draw(0);
+    $nav->focus;
+}
+
+#=======================================================================
+# Callbacks - Manual partitioning
+#=======================================================================
+
+sub MP_focus
 {
     use vars qw(%g_disks @g_mountpoints);
     
     my $win = shift;
+    my $cui = $win->parent;
     my $info = $win->getobj('info');
     my $devicelist = $win->getobj('devicelist');    
     my $mountlist = $win->getobj('mountlist');
     my $fslist = $win->getobj('fslist');    
+    
+    $cui->leave_curses();
+    system("clear && gdisk /dev/sda");
+    $cui->reset_curses();
     
     $mountlist->clear_selection();
     $fslist->clear_selection();
@@ -123,7 +200,7 @@ sub SMP_focus
     $info->text('Select a device...');
 }
 
-sub SMP_devicelist_change
+sub MP_devicelist_change
 {
     use vars qw(%g_disks @g_partition_table);
     
@@ -145,7 +222,7 @@ sub SMP_devicelist_change
     $mountlist->focus;    
 }
 
-sub SMP_devicelist_focus
+sub MP_devicelist_focus
 {
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -154,7 +231,7 @@ sub SMP_devicelist_focus
     $info->text('Select a device...');
 }
 
-sub SMP_mountlist_change
+sub MP_mountlist_change
 {
     my $bbox = shift;
     my $win = $bbox->parent;    
@@ -163,7 +240,7 @@ sub SMP_mountlist_change
     $fslist->focus;    
 }
 
-sub SMP_mountlist_focus
+sub MP_mountlist_focus
 {
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -172,7 +249,7 @@ sub SMP_mountlist_focus
     $info->text('Select a mount point...');
 }
 
-sub SMP_fslist_change
+sub MP_fslist_change
 {
     # FIXME
     #my $bbox = shift;
@@ -182,7 +259,7 @@ sub SMP_fslist_change
     #$partsize->focus;    
 }
 
-sub SMP_fslist_focus
+sub MP_fslist_focus
 {
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -191,7 +268,7 @@ sub SMP_fslist_focus
     $info->text('Select a file system type...');
 }
  
-sub SMP_partsize_focus
+sub MP_partsize_focus
 {
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -200,7 +277,7 @@ sub SMP_partsize_focus
     $info->text('Enter a partition size in MB...');
 }
  
-sub SMP_nav_focus
+sub MP_nav_focus
 {
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -209,7 +286,7 @@ sub SMP_nav_focus
     $info->text('');
 }
  
-sub SMP_nav_add
+sub MP_nav_add
 {
     use vars qw(@g_partition_table $g_disk %g_disks @g_mountpoints);
     
@@ -265,7 +342,7 @@ sub SMP_nav_add
     $info->text('Entry added...');
 }
 
-sub SMP_nav_clear
+sub MP_nav_clear
 {
     use vars qw(@g_partition_table);
     
@@ -344,7 +421,7 @@ sub SP_focus
     my $info = $win->getobj('info');
     my $bootloaderlist = $win->getobj('bootloaderlist');
     
-    $bootloaderlist->values(['grub2', 'syslinux']);
+    $bootloaderlist->values(['grub']);
 }
 
 sub SP_nav_apply
@@ -461,21 +538,52 @@ sub CNET_focus
     $iflist->values(\@values);            
 }
 
+sub CNET_interfacelist_changed
+{
+    my $interfacelist = shift;
+    my $win = $interfacelist->parent;
+    my $info = $win->getobj('info');
+    my $staticipcb = $win->getobj('staticipcb');
+    my $hostnameentry = $win->getobj('hostnameentry');
+    my $ipentry = $win->getobj('ipentry');
+    my $domainentry = $win->getobj('domainentry');
+    
+    my $item = $interfacelist->get();
+    if($item) {
+        $hostnameentry->title('Hostname *');
+    }
+    else {
+        $hostnameentry->title('Hostname');
+    }
+}
+
 sub CNET_staticip_changed
 {
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $info = $win->getobj('info');        
+    my $info = $win->getobj('info');
+    my $interfacelist = $win->getobj('interfacelist');
+    my $hostnameentry = $win->getobj('hostnameentry');
     my $ipentry = $win->getobj('ipentry');
-    my $domainentry = $win->getobj('domainentry');
+    my $domainentry = $win->getobj('domainentry');    
     
+    my $items = $interfacelist->get();
     
     my $state = $bbox->get();
     if($state) {
+        $interfacelist->title('Available network interfaces *');
+        $hostnameentry->title('Hostname *');
         $ipentry->title('IP Address *');
         $domainentry->title('Domain *');
     }
     else {
+        $interfacelist->title('Available network interfaces');
+        if($items) {
+            $hostnameentry->title('Hostname *');
+        }
+        else {
+            $hostnameentry->title('Hostname');
+        }        
         $ipentry->title('IP Address');
         $domainentry->title('Domain');
     }
@@ -612,7 +720,7 @@ sub IS_nav_make_install
     open my $inst, ">$g_install_script";    
     emit_line($inst, "#!/bin/bash");
     emit_line($inst, "set -e");    
-    emit_line($inst, "if [[ \$1 != \"--configure\" ]]; then # This part runs before chroot jail");    
+    emit_line($inst, "if [[ \$1 != \"--configure\" ]]; then # This part runs before chroot");    
     emit_line($inst, "parted -s $g_disk mktable gpt");    
     
     my $last_mount;    
@@ -695,7 +803,7 @@ sub IS_nav_make_install
     }
     
     given($g_bootloader) {
-        when('grub2') {
+        when('grub') {
             emit_line($inst, "pacstrap /mnt grub-bios");
         }
         when('syslinux') {
@@ -748,7 +856,7 @@ sub IS_nav_make_install
     
     emit_line($inst, "echo \"Installation was a success\"");
     
-    emit_line($inst, "\n\nelse # This part runs in chroot jail\n\n");    
+    emit_line($inst, "\n\nelse # This part runs in chroot\n\n");    
     
     # setup vconsole.conf
     
@@ -800,10 +908,12 @@ sub IS_nav_make_install
         unlink('./mirrorlist');
     }
     
+    my ($in, $out);
+    
     # setup locale
     
-    open (my $in, "<", $g_locale_gen);
-    open (my $out, ">", './locale.gen');    
+    open ($in, "<", $g_locale_gen);
+    open ($out, ">", './locale.gen');    
     
     my $found;
     while(my $line = <$in>) {
@@ -836,7 +946,7 @@ sub IS_nav_make_install
         emit($inst, $_);
     }
     close LOCFILE;
-    emit_line($inst, "EOF");            
+    emit_line($inst, 'EOF');            
     unlink('./locale.gen');
     
     emit_line($inst, "locale-gen");
@@ -862,20 +972,20 @@ sub IS_nav_make_install
     
     # setup rc.conf
     
-    open (my $rcin, "<", $g_rc_conf);
-    open (my $rcout, ">", './rc.conf');        
+    open ($in, "<", $g_rc_conf);
+    open ($out, ">", './rc.conf');        
         
-    while(my $line = <$rcin>) {        
+    while(my $line = <$in>) {        
         if ($line =~ /^[#\s]*interface=/ and defined($g_interface)) {            
-            print $rcout "interface=$g_interface\n";            
+            print $out "interface=$g_interface\n";            
         }
         else {
-            print $rcout $line;
+            print $out $line;
         }
     }
     
-    close $rcin;
-    close $rcout;
+    close $in;
+    close $out;
     
     open RCFILE, './rc.conf';
     emit_line($inst, "cat > $g_rc_conf << 'EOF'");
@@ -883,7 +993,7 @@ sub IS_nav_make_install
         emit($inst, $_);
     }
     close RCFILE;
-    emit_line($inst, "EOF");            
+    emit_line($inst, 'EOF');            
     unlink('./rc.conf');
    
     # setup hardware clock
@@ -905,7 +1015,7 @@ sub IS_nav_make_install
         when('syslinux') {
             emit_line($inst, "/usr/sbin/syslinux-install_update -iam");
         }        
-        when('grub2') {
+        when('grub') {
             emit_line($inst, "grub-install $g_disk");
             emit_line($inst, "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo");
             emit_line($inst, "grub-mkconfig -o /boot/grub/grub.cfg");
