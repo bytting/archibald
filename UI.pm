@@ -150,7 +150,7 @@ sub run()
         -onchange => \&MP_mountlist_change, -onFocus => \&MP_mountlist_focus);
         
     $win{'MP'}->add('fslist', 'Radiobuttonbox', -x => 38, -y => 2, -width => 16, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
-        -onchange => \&MP_fslist_change, -onFocus => \&MP_fslist_focus, -values => ['ext2', 'ext3', 'ext4', 'swap']);    
+        -onchange => \&MP_fslist_change, -onFocus => \&MP_fslist_focus, -values => ['bios', 'swap', 'ext2', 'ext3', 'ext4']);    
     
     $win{'MP'}->add('parttable', 'Listbox', -x => 0, -y => 7, -width => 64, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
     

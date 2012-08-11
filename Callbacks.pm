@@ -245,7 +245,7 @@ sub MP_focus
         }
     }
     
-    @g_mountpoints = ('boot', 'root', 'swap', 'home', 'var', 'dev');
+    @g_mountpoints = ('bios', 'boot', 'swap', 'root', 'home', 'usr', 'var', 'dev', 'sys');
     
     $partlist->values(\@g_available_partitions);
     $mountlist->values(\@g_mountpoints);    
