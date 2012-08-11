@@ -2,8 +2,8 @@ Make static IP address work (need to generate bash for this)
 Comment the code
 Allow installing grub on any disk
 Filter language based on locales (?)
-Make mount point "swap" force selection of filesystem type "swap"
-Make mount point "bios" force selection of filesystem type "bios"
+*Make mount point "swap" force selection of filesystem type "swap"
+*Make mount point "bios" force selection of filesystem type "bios"
 Allow a partition setup with no separate boot partition (set the boot flag on root instead)
 Make the remaining disk size take the bios partition(s) into account
 Support disks other than sd* and hd* (?)

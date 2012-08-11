@@ -126,7 +126,7 @@ sub GP_focus
         }
     }    
         
-    $devicelist->values(keys %g_disks);
+    $devicelist->values(sort keys %g_disks);
     $parttable->values([]);
     $devicelist->focus;
     $info->text('Select a disk');    
@@ -189,7 +189,7 @@ sub SD_focus
         }
     }    
         
-    $devicelist->values(keys %g_disks);    
+    $devicelist->values(sort keys %g_disks);    
     $devicelist->focus;
     $info->text('Select a disk...');
 }
@@ -226,6 +226,8 @@ sub MP_focus
     my $fslist = $win->getobj('fslist');    
     
     $g_guided = 0;
+    
+    @g_available_partitions = ();
     @g_partition_table = ();
     
     $cui->leave_curses();
@@ -245,19 +247,37 @@ sub MP_focus
         }
     }
     
-    @g_mountpoints = ('bios', 'boot', 'swap', 'root', 'home', 'usr', 'var', 'dev', 'sys');
+    @g_mountpoints = ('bios', 'boot', 'swap', 'root', 'home', 'usr', 'var', 'dev', 'sys');    
     
     $partlist->values(\@g_available_partitions);
-    $mountlist->values(\@g_mountpoints);    
+    $mountlist->values(\@g_mountpoints);
+    $fslist->values('ext2', 'ext3', 'ext4');
     
     $info->text('Select a mountpoint...');
 }
 
 sub MP_mountlist_change
 {
-    my $bbox = shift;
-    my $win = $bbox->parent;    
+    my $mountlist = shift;
+    my $win = $mountlist->parent;    
     my $fslist = $win->getobj('fslist');
+    
+    my $mountpoint = $mountlist->get();
+    if(!defined($mountpoint)) { return }
+    
+    given($mountpoint) {
+        when('bios') {
+            $fslist->values('bios');
+            $fslist->set_selection(0);
+        }
+        when('swap') {
+            $fslist->values('swap');
+            $fslist->set_selection(0);
+        }
+        default {
+            $fslist->values('ext2', 'ext3', 'ext4');
+        }
+    }
     
     $fslist->focus;    
 }
@@ -272,13 +292,9 @@ sub MP_mountlist_focus
 }
 
 sub MP_fslist_change
-{
-    # FIXME
+{    
     #my $bbox = shift;
-    #my $win = $bbox->parent;    
-    #my $partsize = $win->getobj('partsize');
-        
-    #$partsize->focus;    
+    #my $win = $bbox->parent;                
 }
 
 sub MP_fslist_focus
@@ -335,13 +351,26 @@ sub MP_nav_add
 
 sub MP_nav_clear
 {
-    use vars qw(@g_partition_table);
+    use vars qw(@g_partition_table @g_available_partitions);
     
     my $bbox = shift;
     my $win = $bbox->parent;    
     my ($partlist, $mountlist, $fslist) = ($win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'));
     my $parttable = $win->getobj('parttable');
-            
+           
+    @g_available_partitions = ();
+    my @pi;
+    my @p = `parted $g_disk print`;
+    foreach(@p) {
+        if(/^\s\d\s/) {
+            s/^\s*//;
+           @pi = split(/\s+/, $_);
+           push @g_available_partitions, "$g_disk$pi[0]";
+        }
+    }
+    
+    $partlist->values(\@g_available_partitions);
+    
     $mountlist->clear_selection();
     @g_mountpoints = ('bios', 'boot', 'swap', 'root', 'home', 'usr', 'var', 'dev', 'sys');
     $mountlist->values(\@g_mountpoints);

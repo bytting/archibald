@@ -46,7 +46,7 @@ sub run()
     
     $win{'MM'} = $cui->add(undef, 'Window', -title => 'Archibald: Main menu', %win_args, -onFocus => \&MM_focus);
 
-    $win{'MM'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0,
+    $win{'MM'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 16, -bold => 1, -singleline => 0,
         -wrapping => 1, -vscrollbar => 'right', -fg => 'green');
     
     $win{"MM"}->add('nav', 'Buttonbox', -y => -1,
@@ -64,7 +64,7 @@ sub run()
     
     $win{'CK'}->add('info', 'Label', %info_args);
     
-    $win{'CK'}->add('keymaplist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 9, -vscrollbar => 'right', -border => 1, -title => 'Available keymaps');
+    $win{'CK'}->add('keymaplist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 14, -vscrollbar => 'right', -border => 1, -title => 'Available keymaps');
     
     $win{'CK'}->add('opt', 'Buttonbox', -y => -2,
         -buttons  => [                        
@@ -87,11 +87,16 @@ sub run()
 
     $win{'SPS'}->add('info', 'Label', %info_args);        
     
+    $win{'SPS'}->add('menu', 'Buttonbox', -x => 0, -y => 2, -vertical => 1,
+        -buttons => [            
+            { -label => 'Manual partitioning with gdisk', -value => 'manual', -onpress => sub { $win{'SD'}->focus } },
+            { -label => 'Guided partitioning (Use entire disk)', -value => 'guided', -onpress => sub { $win{'GP'}->focus } }
+        ]
+    );
+    
     $win{'SPS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } },            
-            { -label => '<Manual (gdisk)>', -value => 'manual', -onpress => sub { $win{'SD'}->focus } },
-            { -label => '<Guided (Entire disk)>', -value => 'guided', -onpress => sub { $win{'GP'}->focus } }
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } }            
         ]
     );
     
@@ -103,10 +108,10 @@ sub run()
 
     $win{'GP'}->add('info', 'Label', %info_args);
     
-    $win{'GP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 16, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
+    $win{'GP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
         -onchange => \&GP_devicelist_change);
     
-    $win{'GP'}->add('parttable', 'Listbox', -x => 0, -y => 9, -width => -1, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Partition | Mountpoint | Filesystem | Size (MB)');
+    $win{'GP'}->add('parttable', 'Listbox', -x => 0, -y => 8, -width => -1, -height => 9, -border => 1, -vscrollbar => 'right', -title => 'Partition | Mountpoint | Filesystem | Size (MB)');
     
     $win{'GP'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
@@ -123,7 +128,7 @@ sub run()
 
     $win{'SD'}->add('info', 'Label', %info_args);
         
-    $win{'SD'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
+    $win{'SD'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available disks',
         -onchange => \&SD_devicelist_change);
     
     $win{'SD'}->add('viewer', 'TextViewer', -x => 0, -y => 8, -width => -1, -height => 9, -bold => 1, -singleline => 0, -border => 1, -title => 'Current disk layout',
@@ -140,19 +145,19 @@ sub run()
     # UI - Manual partitioning
     #=======================================================================
     
-    $win{'MP'} = $cui->add(undef, 'Window', -title => 'Archibald: Select mount points and filesystem', %win_args, -onFocus => \&MP_focus);
+    $win{'MP'} = $cui->add(undef, 'Window', -title => 'Archibald: Select mountpoints and filesystems', %win_args, -onFocus => \&MP_focus);
 
     $win{'MP'}->add('info', 'Label', %info_args);    
 
-    $win{'MP'}->add('partlist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 22, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Partitions');
+    $win{'MP'}->add('partlist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 25, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Partitions');
         
-    $win{'MP'}->add('mountlist', 'Radiobuttonbox', -x => 22, -y => 2, -width => 16, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Mountpoints',        
+    $win{'MP'}->add('mountlist', 'Radiobuttonbox', -x => 25, -y => 2, -width => 25, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Mountpoints',        
         -onchange => \&MP_mountlist_change, -onFocus => \&MP_mountlist_focus);
         
-    $win{'MP'}->add('fslist', 'Radiobuttonbox', -x => 38, -y => 2, -width => 16, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
-        -onchange => \&MP_fslist_change, -onFocus => \&MP_fslist_focus, -values => ['bios', 'swap', 'ext2', 'ext3', 'ext4']);    
+    $win{'MP'}->add('fslist', 'Radiobuttonbox', -x => 50, -y => 2, -width => 25, -height => 6, -border => 1, -vscrollbar => 'right', -title => 'Filesystems',
+        -onchange => \&MP_fslist_change, -onFocus => \&MP_fslist_focus);    
     
-    $win{'MP'}->add('parttable', 'Listbox', -x => 0, -y => 7, -width => 64, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
+    $win{'MP'}->add('parttable', 'Listbox', -x => 0, -y => 8, -width => -1, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
     
     $win{'MP'}->add('opt', 'Buttonbox', -y => -2, -onFocus => \&MP_nav_focus,
         -buttons => [            
@@ -174,9 +179,9 @@ sub run()
     
     $win{'SM'} = $cui->add(undef, 'Window', -title => 'Archibald: Select installation mirrors', %win_args, -onFocus => \&SM_focus);
     
-    $win{'SM'}->add('info', 'Label', %info_args, -title => 'Select the mirrors you want to enable');
+    $win{'SM'}->add('info', 'Label', %info_args, -text => 'Select the mirrors you want to enable');
     
-    $win{'SM'}->add('mirrorlist', 'Listbox', -x => 0, -y => 2, -width => -1, -height => 12, -vscrollbar => 'right', -hscrollbar => 'top', -border => 1, -multi => 1, -title => 'Mirror servers');
+    $win{'SM'}->add('mirrorlist', 'Listbox', -x => 0, -y => 2, -width => -1, -height => 14, -vscrollbar => 'right', -hscrollbar => 'top', -border => 1, -multi => 1, -title => 'Mirror servers');
     
     $win{'SM'}->add('opt', 'Buttonbox', -y => -2,
         -buttons => [            
@@ -278,9 +283,9 @@ sub run()
     # UI - Make install
     #=======================================================================
     
-    $win{'IS'} = $cui->add(undef, 'Window', -title => 'Archibald: Reboot system', %win_args, -onFocus => \&IS_focus);
+    $win{'IS'} = $cui->add(undef, 'Window', -title => 'Archibald: Installation', %win_args, -onFocus => \&IS_focus);
     
-    $win{'IS'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 12, -bold => 1, -singleline => 0,
+    $win{'IS'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 14, -bold => 1, -singleline => 0,
         -wrapping => 1, -vscrollbar => 'right');
     
     $win{'IS'}->add('opt', 'Buttonbox', -y => -2,
