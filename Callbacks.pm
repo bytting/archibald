@@ -507,7 +507,10 @@ sub CS_focus
     
     my $win = shift;
     my $info = $win->getobj('info');
-    my $timezonelist = $win->getobj('timezonelist');    
+    my $timezonelist = $win->getobj('timezonelist');
+    my $localelist = $win->getobj('localelist');
+    my $localelist_lang = $win->getobj('localelist_lang');
+    my $localelist_time = $win->getobj('localelist_time');
     
     # populate timezones    
     my ($err, @timezones) = find_zoneinfo($g_timezone_directory);
@@ -522,10 +525,7 @@ sub CS_focus
     
     $timezonelist->values(\@timezones);
     
-    # populate locale.gen
-    my $localelist = $win->getobj('localelist');
-    my $localelist_lang = $win->getobj('localelist_lang');
-    
+    # populate locale.gen        
     unless(-e $g_locale_gen) {
         $info->text("The file $g_locale_gen was not found");
         return;
@@ -543,12 +543,13 @@ sub CS_focus
     }
     
     $localelist->values(\@locales);
-    $localelist_lang->values(\@locales);    
+    $localelist_lang->values(\@locales);
+    $localelist_time->values(\@locales);    
 }
 
 sub CS_nav_apply
 {
-    use vars qw($g_timezone @g_locales $g_locale_lang $g_localetime);
+    use vars qw($g_timezone @g_locales $g_locale_lang $g_locale_time $g_localetime);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -557,13 +558,22 @@ sub CS_nav_apply
     my $timezonelist = $win->getobj('timezonelist');
     my $localelist = $win->getobj('localelist');
     my $localelist_lang = $win->getobj('localelist_lang');
+    my $localelist_time = $win->getobj('localelist_time');
     my $localetimecb = $win->getobj('localetimecb');    
         
     $g_timezone = $timezonelist->get();
     @g_locales = $localelist->get();
+    
     $g_locale_lang = $localelist_lang->get();
     $g_locale_lang =~ s/\s+.*//;
     chomp($g_locale_lang);
+    
+    $g_locale_time = $localelist_time->get();
+    if(defined($g_locale_time)) {
+        $g_locale_time =~ s/\s+.*//;
+        chomp($g_locale_time);
+    }
+    
     $g_localetime = $localetimecb->get();
     
     $info->text('System configuration applied');
@@ -685,7 +695,7 @@ sub IS_nav_make_install
 {
     use vars qw($g_keymap $g_font $g_fontmap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
     $g_timezone $g_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
-    $g_domain $g_disk $g_rc_conf $g_locale_default $g_install_script $g_guided);
+    $g_domain $g_disk $g_rc_conf $g_locale_lang $g_locale_time $g_install_script $g_guided);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -1015,9 +1025,11 @@ sub IS_nav_make_install
     emit($inst, "\n");
             
     emit_line($inst, "echo \"LANG=$g_locale_lang\" > /etc/locale.conf");
-    emit_line($inst, "echo \"LC_TIME=$g_timezone\" >> /etc/locale.conf");
+    emit_line($inst, "echo \"LC_TIME=$g_locale_time\" >> /etc/locale.conf");
     emit_line($inst, "echo \"LC_MESSAGES=C\" >> /etc/locale.conf");
         
+    emit_line($inst, "ln -s /usr/share/zoneinfo/$g_timezone /etc/localtime");
+    
     # setup hostname/hosts
     
     if(defined($g_hostname)) {
