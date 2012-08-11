@@ -24,6 +24,12 @@ use warnings;
 our ($g_keymap,
      $g_keymap_directory,
      $g_keymap_extension,
+     $g_font,
+     $g_font_directory,
+     $g_font_extension,
+     $g_fontmap,
+     $g_fontmap_directory,
+     $g_fontmap_extension,
      $g_bootloader,
      $g_wirelesstools,
      @g_partition_table,
@@ -52,6 +58,10 @@ our ($g_keymap,
 $g_keymap = 'us';
 $g_keymap_directory = '/usr/share/kbd/keymaps/';
 $g_keymap_extension = '.map.gz';
+$g_font_directory = '/usr/share/kbd/consolefonts/';
+$g_font_extension = '.gz';
+$g_fontmap_directory = '/usr/share/kbd/consoletrans/';
+$g_fontmap_extension = '.trans';
 $g_mirrorlist = '/etc/pacman.d/mirrorlist';
 $g_timezone_directory = '/usr/share/zoneinfo/';
 $g_locale_gen = '/etc/locale.gen';

@@ -36,7 +36,7 @@ sub MM_focus {
     my $viewer = $win->getobj('viewer');
     my $nav = $win->getobj('nav');
     
-    $viewer->text("Welcome to Archibald...\nYou can press CTRL+q to quit without saving at any time.\nPress continue to start");
+    $viewer->text("Welcome to Archibald...\nYou can press CTRL+q to quit without saving at any time.\nFields marked with an asterisk is required\nPress continue to start");
     
     $nav->focus;
 }
@@ -47,13 +47,17 @@ sub MM_focus {
 
 sub CK_focus
 {
-    use vars qw($g_keymap_directory $g_keymap_extension);
+    use vars qw($g_keymap_directory $g_keymap_extension $g_font_directory $g_font_extension $g_fontmap_directory $g_fontmap_extension);
     
     my $win = shift;
     my $info = $win->getobj('info');
-    my $keymaplist = $win->getobj('keymaplist');    
-        
-    my ($err, @keymaps) = find_files_deep($g_keymap_directory, $g_keymap_extension);
+    my $keymaplist = $win->getobj('keymaplist');
+    my $fontlist = $win->getobj('fontlist');
+    my $fontmaplist = $win->getobj('fontmaplist');    
+    
+    # setup keymaps    
+    my ($err, @keymaps, @fonts, @fontmaps);
+    ($err, @keymaps) = find_files_deep($g_keymap_directory, $g_keymap_extension);
     if($err) {
         $info->text('No keymaps found');
         return;
@@ -65,26 +69,64 @@ sub CK_focus
     }
     
     $keymaplist->values(\@keymaps);
-    $info->text('Select a keymap...');
+    
+    # setup fonts
+    ($err, @fonts) = find_files_deep($g_font_directory, $g_font_extension);
+    if($err) {
+        $info->text('No fonts found');
+        return;
+    }
+    
+    foreach (@fonts) {
+        s/^$g_font_directory//;
+        s/$g_font_extension$//;
+        s/\.psf[u]*$//;
+        s/\.fnt$//;
+    }
+    
+    $fontlist->values(\@fonts);
+    
+    # setup fontmaps
+    ($err, @fontmaps) = find_files_deep($g_fontmap_directory, $g_fontmap_extension);
+    if($err) {
+        $info->text('No fontmaps found');
+        return;
+    }
+    
+    foreach (@fontmaps) {
+        s/^$g_fontmap_directory//;
+        s/$g_fontmap_extension$//;
+        s/_to_.*$//;
+    }
+    
+    $fontmaplist->values(\@fontmaps);    
 }
 
 sub CK_nav_apply
 {
-    use vars qw($g_keymap);
+    use vars qw($g_keymap $g_font $g_fontmap);
     
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
-    my $kmlist = $win->getobj('keymaplist');            
-    my $km = $kmlist->get();
+    my $keymaplist = $win->getobj('keymaplist');
+    my $fontlist = $win->getobj('fontlist');
+    my $fontmaplist = $win->getobj('fontmaplist');
     
-    return unless defined($km);
+    my $keymap = $keymaplist->get();    
     
-    $g_keymap = (split(/\//, $km))[-1];
+    if(!defined($keymap)) {
+        $info->text("You must select a keymap");
+        return;
+    }
     
+    $g_keymap = (split(/\//, $keymap))[-1];    
     `loadkeys $g_keymap`;
     
-    $info->text("Keymap $g_keymap selected");    
+    $g_font = $fontlist->get();
+    $g_fontmap = $fontmaplist->get();
+    
+    $info->text("Selection applied");    
 }
 
 #=======================================================================
@@ -641,7 +683,7 @@ sub IS_focus
 
 sub IS_nav_make_install
 {
-    use vars qw($g_keymap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
+    use vars qw($g_keymap $g_font $g_fontmap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
     $g_timezone $g_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
     $g_domain $g_disk $g_rc_conf $g_locale_default $g_install_script $g_guided);
     
@@ -795,6 +837,10 @@ sub IS_nav_make_install
                 emit_line($inst, "mkdir /mnt/home");
                 emit_line($inst, "mount $partition /mnt/home");
             }
+            when('usr') {
+                emit_line($inst, "mkdir /mnt/usr");
+                emit_line($inst, "mount $partition /mnt/usr");
+            }
             when('var') {
                 emit_line($inst, "mkdir /mnt/var");
                 emit_line($inst, "mount $partition /mnt/var");
@@ -802,6 +848,10 @@ sub IS_nav_make_install
             when('dev') {
                 emit_line($inst, "mkdir /mnt/dev");
                 emit_line($inst, "mount $partition /mnt/dev");
+            }
+            when('sys') {
+                emit_line($inst, "mkdir /mnt/sys");
+                emit_line($inst, "mount $partition /mnt/sys");
             }
         }        
     }
@@ -848,23 +898,22 @@ sub IS_nav_make_install
             when('home') {
                 emit_line($inst, "umount /mnt/home");            
             }
+            when('usr') {
+                emit_line($inst, "umount /mnt/usr");                            
+            }
             when('var') {
                 emit_line($inst, "umount /mnt/var");                            
             }
             when('dev') {
                 emit_line($inst, "umount /mnt/dev");                                            
             }
+            when('sys') {
+                emit_line($inst, "umount /mnt/sys");                            
+            }
         }        
     }
     
-    foreach(@g_partition_table) {
-        my ($dsk, $mount, $fs, $size) = split /:/;
-        given($mount) {                
-            when('root') {                
-                emit_line($inst, "umount /mnt");
-            }        
-        }        
-    }
+    emit_line($inst, "umount /mnt");    
     
     emit_line($inst, "echo \"Installation was a success\"");
     
@@ -873,8 +922,8 @@ sub IS_nav_make_install
     # setup vconsole.conf
     
     emit_line($inst, "echo \"KEYMAP=$g_keymap\" > /etc/vconsole.conf");
-    emit_line($inst, "echo \"FONT=\" >> /etc/vconsole.conf");
-    emit_line($inst, "echo \"FONT_MAP=\" >> /etc/vconsole.conf");
+    emit_line($inst, "echo \"FONT=$g_font\" >> /etc/vconsole.conf");
+    emit_line($inst, "echo \"FONT_MAP=$g_fontmap\" >> /etc/vconsole.conf");
     
     emit($inst, "\n");        
     
@@ -966,6 +1015,8 @@ sub IS_nav_make_install
     emit($inst, "\n");
             
     emit_line($inst, "echo \"LANG=$g_locale_lang\" > /etc/locale.conf");
+    emit_line($inst, "echo \"LC_TIME=$g_timezone\" >> /etc/locale.conf");
+    emit_line($inst, "echo \"LC_MESSAGES=C\" >> /etc/locale.conf");
         
     # setup hostname/hosts
     

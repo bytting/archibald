@@ -62,9 +62,13 @@ sub run()
     
     $win{'CK'} = $cui->add(undef, 'Window', -title => 'Archibald: Select keymap', %win_args, -onFocus => \&CK_focus);
     
-    $win{'CK'}->add('info', 'Label', %info_args);
+    $win{'CK'}->add('info', 'Label', %info_args, -text => 'Select keymap, font and fontmap');
     
-    $win{'CK'}->add('keymaplist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 14, -vscrollbar => 'right', -border => 1, -title => 'Available keymaps');
+    $win{'CK'}->add('keymaplist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 38, -height => 14, -vscrollbar => 'right', -border => 1, -title => 'Available keymaps *');
+    
+    $win{'CK'}->add('fontlist', 'Radiobuttonbox', -x => 38, -y => 2, -width => 34, -height => 7, -vscrollbar => 'right', -border => 1, -title => 'Available fonts');
+    
+    $win{'CK'}->add('fontmaplist', 'Radiobuttonbox', -x => 38, -y => 9, -width => 34, -height => 7, -vscrollbar => 'right', -border => 1, -title => 'Available fontmaps');
     
     $win{'CK'}->add('opt', 'Buttonbox', -y => -2,
         -buttons  => [                        
