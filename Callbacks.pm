@@ -192,7 +192,7 @@ sub GP_focus
         my $contents = do { local $/; <FILE> };
         if($contents > 0) {
             s/^\/sys\/block\///;
-            $g_disks{$_} = $contents * 512 / 1000 / 1000 - 1;
+            $g_disks{$_} = $contents * 512 / 1024 / 1024 - 1;
         }
     }    
         
@@ -221,7 +221,7 @@ sub GP_devicelist_change
         return;
     }
         
-    my $rest = int($g_disks{$device} - 2 - 200 - 2048);
+    my $rest = int($g_disks{$device}) - 2 - 200 - 2048;
     my $partnr = 1;
     my $bios = "$g_disk" . $partnr++ . ":bios:bios:2";
     my $boot = "$g_disk" . $partnr++ . ":boot:ext2:200";    

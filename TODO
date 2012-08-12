@@ -1,16 +1,12 @@
-Make static IP address work (need to generate bash for this)
 Comment the code
 Make resources (environment) and installer generator into separate modules
-Allow installing grub on any disk
 Filter language based on locales (?)
 Add traps to installer script
-Allow a partition setup with no separate boot partition (set the boot flag on root instead)
 Support disks other than sd* and hd* (?)
 Make syslinux work with gpt (?)
 Support for more filesystem types
-Support msdos partition table (?)
 UEFI support
-Add an option to install Arch directly from a pre-made installer script (eg. setup --url=myserver.com/arch-installer)
+Add an option to install Arch directly from a pre-made installer script (eg. setup --url=myserver.com/arch-installer --ip=192.168.1.2)
 Make wireless and mobile broadband work
 Load wireless firmware
 Support signed packages (?)
