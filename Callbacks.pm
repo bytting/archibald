@@ -283,7 +283,7 @@ sub SD_devicelist_change
     my $dev = $devicelist->get();
     $g_disk = "/dev/$dev";
         
-    my $out = `parted $g_disk print`;    
+    my $out = `gdisk $g_disk -l`;    
     $viewer->text($out);
 }
 
