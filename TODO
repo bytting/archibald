@@ -1,6 +1,5 @@
 Comment the code
 Make resources (environment) and installer generator into separate modules
-Filter language based on locales (?)
 Add traps to installer script
 Support disks other than sd* and hd* (?)
 Make syslinux work with gpt (?)

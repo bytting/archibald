@@ -587,8 +587,8 @@ sub CS_focus
     my $info = $win->getobj('info');
     my $timezonelist = $win->getobj('timezonelist');
     my $localelist = $win->getobj('localelist');
-    my $localelist_lang = $win->getobj('localelist_lang');
-    my $localelist_time = $win->getobj('localelist_time');
+    #my $localelist_lang = $win->getobj('localelist_lang');
+    #my $localelist_time = $win->getobj('localelist_time');
     
     # populate timezones    
     my ($err, @timezones) = find_zoneinfo($g_timezone_directory);
@@ -621,8 +621,22 @@ sub CS_focus
     }
     
     $localelist->values(\@locales);
-    $localelist_lang->values(\@locales);
-    $localelist_time->values(\@locales);    
+    #$localelist_lang->values(\@locales);
+    #$localelist_time->values(\@locales);    
+}
+
+sub CS_localelist_selchange
+{
+    my $localelist = shift;
+    my $win = $localelist->parent;
+    my $info = $win->getobj('info');        
+    my $localelist_lang = $win->getobj('localelist_lang');
+    my $localelist_time = $win->getobj('localelist_time');
+            
+    my @trimmed_locales = grep { $_ =~ s/\s+.*// } $localelist->get();
+        
+    $localelist_lang->values(\@trimmed_locales);
+    $localelist_time->values(\@trimmed_locales);    
 }
 
 sub CS_nav_continue
@@ -655,17 +669,13 @@ sub CS_nav_continue
     unless(defined $g_locale_lang) {
         $info->text('You must select a language');
         return;
-    }    
-    $g_locale_lang =~ s/\s+.*//;
+    }        
     chomp($g_locale_lang);
     
     $g_locale_time = $localelist_time->get();
-    unless(defined $g_locale_time) {
-        $info->text('You must select LC_TIME');
-        return;
-    }
-    $g_locale_time =~ s/\s+.*//;
-    chomp($g_locale_time);
+    if(defined $g_locale_time) {
+        chomp($g_locale_time);
+    }        
     
     $g_use_localetime = $localetimecb->get();    
     
@@ -1096,9 +1106,11 @@ sub IS_nav_make_install
     
     emit($inst, "\n");
             
-    emit_line($inst, "echo \"LANG=$g_locale_lang\" > /etc/locale.conf");
-    emit_line($inst, "echo \"LC_TIME=$g_locale_time\" >> /etc/locale.conf");
+    emit_line($inst, "echo \"LANG=$g_locale_lang\" > /etc/locale.conf");    
     emit_line($inst, "echo \"LC_MESSAGES=C\" >> /etc/locale.conf");
+    if(defined $g_locale_time) {
+        emit_line($inst, "echo \"LC_TIME=$g_locale_time\" >> /etc/locale.conf");
+    }
         
     emit_line($inst, "ln -s /usr/share/zoneinfo/$g_timezone /etc/localtime");
     

@@ -217,12 +217,13 @@ sub run()
     $win{'CS'}->add('info', 'Label', %info_args, -text => 'Marked fields are required');    
         
     $win{'CS'}->add('timezonelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 35, -height => 7, -vscrollbar => 'right', -border => 1, -title => 'Timezone *');    
-    $win{'CS'}->add('localelist', 'Listbox', -x => 35, -y => 2, -width => 35, -height => 7, -vscrollbar => 'right', -border => 1, -multi => 1, -title => 'Locales *');
+    $win{'CS'}->add('localelist', 'Listbox', -x => 35, -y => 2, -width => 35, -height => 7, -vscrollbar => 'right', -border => 1, -multi => 1, -title => 'Locales *',
+        -onchange => \&CS_localelist_selchange);
         
     $win{'CS'}->add('localelist_lang', 'Radiobuttonbox', -x => 0, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'LANG *');
-    $win{'CS'}->add('localelist_time', 'Radiobuttonbox', -x => 35, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'LC_TIME *');
+    $win{'CS'}->add('localelist_time', 'Radiobuttonbox', -x => 35, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'LC_TIME');
     
-    $win{'CS'}->add('localetimecb', 'Checkbox', -x => 0, -y => 15, -label => 'Use localtime');        
+    $win{'CS'}->add('localetimecb', 'Checkbox', -x => 35, -y => 15, -label => 'Use localtime');        
     
     $win{'CS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
