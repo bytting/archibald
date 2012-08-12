@@ -187,15 +187,21 @@ sub GP_focus
     my (@sd_disks, @hd_disks);
     @sd_disks = glob("/sys/block/sd*");
     @hd_disks = glob("/sys/block/hd*");
-    foreach (@sd_disks, @hd_disks) {
-        open FILE, "<$_/size";
+    foreach my $disk (@sd_disks, @hd_disks)
+    {
+        open FILE, "<$disk/size";
         my $contents = do { local $/; <FILE> };
-        if($contents > 0) {
-            s/^\/sys\/block\///;
-            $g_disks{$_} = $contents * 512 / 1024 / 1024 - 1;
-        }
+        close FILE;
+        if($contents <= 0) { next }
+        $disk =~ s/\/sys\/block\///;
+        my @out = `gdisk /dev/$disk -l`;
+        if(!@out) { next };
+        my @dinfo = grep { $_ =~ /^First usable sector is/ } @out;            
+        my @secsizes = $dinfo[0] =~ /(\d+)/g;        
+        my $seccnt = $secsizes[1] - $secsizes[0];        
+        $g_disks{$disk} = $seccnt * 512 / 1000 / 1000 - 1;        
     }    
-        
+    
     $devicelist->values(sort keys %g_disks);
     $parttable->values([]);
     $devicelist->focus;
@@ -247,19 +253,16 @@ sub SD_focus
     my $info = $win->getobj('info');
     my $devicelist = $win->getobj('devicelist');        
 
-    my (@sd_disks, @hd_disks);
+    my (@sd_disks, @hd_disks, @disks);
     @sd_disks = glob("/sys/block/sd*");
     @hd_disks = glob("/sys/block/hd*");
-    foreach (@sd_disks, @hd_disks) {
-        open FILE, "<$_/size";
-        my $contents = do { local $/; <FILE> };
-        if($contents > 0) {
-            s/^\/sys\/block\///;
-            $g_disks{$_} = $contents * 512 / 1000 / 1000 - 1;
-        }
+    foreach (@sd_disks, @hd_disks)
+    {        
+        s/^\/sys\/block\///;
+        push @disks, $_;                    
     }    
         
-    $devicelist->values(sort keys %g_disks);    
+    $devicelist->values(sort @disks);    
     $devicelist->focus;
     $info->text('Select a disk...');
 }
