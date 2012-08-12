@@ -27,6 +27,8 @@ use feature qw(switch);
 require Common;
 require Functions;
 
+use vars qw(%win);
+
 #=======================================================================
 # Callbacks - Main menu
 #=======================================================================
@@ -36,7 +38,7 @@ sub MM_focus {
     my $viewer = $win->getobj('viewer');
     my $nav = $win->getobj('nav');
     
-    $viewer->text("Welcome to Archibald...\nYou can press CTRL+q to quit without saving at any time.\nFields marked with an asterisk is required\nPress continue to start");
+    $viewer->text("Welcome to Archibald...\nYou can press CTRL+q to quit without saving at any time.\nFields marked with an asterisk is required for a minimal configuration.\nPress continue to start");
     
     $nav->focus;
 }
@@ -102,12 +104,12 @@ sub CK_focus
     $fontmaplist->values(\@fontmaps);    
 }
 
-sub CK_nav_apply
+sub CK_nav_continue
 {
     use vars qw($g_keymap $g_font $g_fontmap);
     
     my $bbox = shift;
-    my $win = $bbox->parent;
+    my $win = $bbox->parent;    
     my $info = $win->getobj('info');
     my $keymaplist = $win->getobj('keymaplist');
     my $fontlist = $win->getobj('fontlist');
@@ -115,7 +117,7 @@ sub CK_nav_apply
     
     my $keymap = $keymaplist->get();    
     
-    if(!defined($keymap)) {
+    unless(defined $keymap) {
         $info->text("You must select a keymap");
         return;
     }
@@ -126,7 +128,7 @@ sub CK_nav_apply
     $g_font = $fontlist->get();
     $g_fontmap = $fontmaplist->get();
     
-    $info->text("Selection applied");    
+    $win{'SPS'}->focus;
 }
 
 #=======================================================================
@@ -141,20 +143,46 @@ sub SPS_focus
     $info->text('Select a partitioning scheme');
 }
 
+sub SPS_nav_continue
+{
+    use vars qw($g_partitioning_scheme);
+    
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');
+    my $schemelist = $win->getobj('schemelist');    
+            
+    $g_partitioning_scheme = $schemelist->get();        
+    unless(defined $g_partitioning_scheme) {
+        $info->text('You must select a partitioning scheme');
+        return;
+    }    
+    
+    given($g_partitioning_scheme) {
+        when('guided') {
+            $win{'GP'}->focus;
+        }
+        when('gdisk') {
+            $win{'SD'}->focus;
+        }
+        when('fdisk') {
+            $win{'SD'}->focus;
+        }
+    }    
+}
+
 #=======================================================================
 # Callbacks - Guided partitioning
 #=======================================================================
 
 sub GP_focus
 {
-    use vars qw(%g_disks $g_guided);
+    use vars qw(%g_disks);
     
     my $win = shift;    
     my $info = $win->getobj('info');    
     my $devicelist = $win->getobj('devicelist');
-    my $parttable = $win->getobj('parttable');    
-
-    $g_guided = 1;
+    my $parttable = $win->getobj('parttable');      
     
     my (@sd_disks, @hd_disks);
     @sd_disks = glob("/sys/block/sd*");
@@ -258,22 +286,20 @@ sub SD_devicelist_change
 
 sub MP_focus
 {
-    use vars qw($g_disk @g_mountpoints @g_available_partitions $g_guided @g_partition_table);
+    use vars qw($g_disk @g_mountpoints @g_available_partitions @g_partition_table $g_partitioning_scheme);
     
     my $win = shift;
     my $cui = $win->parent;
     my $info = $win->getobj('info');
     my $partlist = $win->getobj('partlist');
     my $mountlist = $win->getobj('mountlist');
-    my $fslist = $win->getobj('fslist');    
-    
-    $g_guided = 0;
+    my $fslist = $win->getobj('fslist');        
     
     @g_available_partitions = ();
     @g_partition_table = ();
     
     $cui->leave_curses();
-    system("clear && gdisk $g_disk");
+    system("clear && $g_partitioning_scheme $g_disk");
     $cui->reset_curses();
     
     $mountlist->clear_selection();
@@ -305,7 +331,7 @@ sub MP_mountlist_change
     my $fslist = $win->getobj('fslist');
     
     my $mountpoint = $mountlist->get();
-    if(!defined($mountpoint)) { return }
+    unless(defined $mountpoint) { return }
     
     given($mountpoint) {
         when('bios') {
@@ -423,6 +449,31 @@ sub MP_nav_clear
     $partlist->focus;
 }
 
+sub MP_nav_continue
+{
+    use vars qw(@g_partition_table $g_partitioning_scheme);
+    
+    my $bbox = shift;
+    my $win = $bbox->parent;
+    my $info = $win->getobj('info');
+    
+    if($g_partitioning_scheme eq 'gdisk') {
+        my $bios_partitions = grep { $_ =~ /.+:bios:.+/ } @g_partition_table;
+        if($bios_partitions < 1) {
+            $info->text('You must configure a bios partition when creating a gpt disk');
+            return;
+        }
+    }
+    
+    my $root_partitions = grep { $_ =~ /.+:root:.+/ } @g_partition_table;
+        if($root_partitions < 1) {
+            $info->text('You must select a root partition');
+            return;
+        }
+    
+    $win{'SM'}->focus;                      
+}
+
 #=======================================================================
 # Callbacks - Select mirror
 #=======================================================================
@@ -456,7 +507,7 @@ sub SM_focus
     $mirrorlist->values(map { "$mirrors{$_} - $_" } keys %mirrors);    
 }
 
-sub SM_nav_apply
+sub SM_nav_continue
 {
     use vars qw($g_mirrorlist @g_mirrors);
     
@@ -465,7 +516,12 @@ sub SM_nav_apply
     my ($info, $mirrorlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));            
     @g_mirrors = $mirrorlist->get();
     
-    $info->text('Mirror selection applied');
+    if(!@g_mirrors) {
+        $info->text('You must select at least one mirror');
+        return;
+    }    
+    
+    $win{'SP'}->focus;
 }
 
 #=======================================================================
@@ -477,24 +533,43 @@ sub SP_focus
     my $win = shift;
     my $info = $win->getobj('info');
     my $bootloaderlist = $win->getobj('bootloaderlist');
-    
+    my $devicelist = $win->getobj('devicelist');        
+
+    my (@sd_disks, @hd_disks, @disks);
+    @sd_disks = glob("/sys/block/sd*");
+    @hd_disks = glob("/sys/block/hd*");
+    foreach (@sd_disks, @hd_disks) {        
+        s/^\/sys\/block\//\/dev\//;
+        push @disks, $_;
+    }    
+        
+    $devicelist->values(sort @disks);    
     $bootloaderlist->values(['grub']);
 }
 
-sub SP_nav_apply
+sub SP_nav_continue
 {
-    use vars qw($g_bootloader $g_wirelesstools);
+    use vars qw($g_bootloader $g_boot_disk $g_wirelesstools);
     
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
     my $bootloaderlist = $win->getobj('bootloaderlist');
+    my $devicelist = $win->getobj('devicelist');        
     my $wirelesstoolscb = $win->getobj('wirelesstoolscb');
     
     $g_bootloader = $bootloaderlist->get();
+    $g_boot_disk = $devicelist->get();
     $g_wirelesstools = $wirelesstoolscb->get();    
     
-    $info->text("Package selection applied");
+    if(defined $g_bootloader) {
+        unless(defined $g_boot_disk) {
+            $info->text("You must select a boot device for $g_bootloader");
+            return;
+        }
+    }    
+    
+    $win{'CS'}->focus;
 }
 
 #=======================================================================
@@ -547,9 +622,9 @@ sub CS_focus
     $localelist_time->values(\@locales);    
 }
 
-sub CS_nav_apply
+sub CS_nav_continue
 {
-    use vars qw($g_timezone @g_locales $g_locale_lang $g_locale_time $g_localetime);
+    use vars qw($g_timezone @g_locales $g_locale_lang $g_locale_time $g_use_localetime);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -562,21 +637,34 @@ sub CS_nav_apply
     my $localetimecb = $win->getobj('localetimecb');    
         
     $g_timezone = $timezonelist->get();
+    unless(defined $g_timezone) {
+        $info->text('You must select a timezone');
+        return;
+    }
+    
     @g_locales = $localelist->get();
+    if(!@g_locales) {
+        $info->text('You must select at least one locale');
+        return;
+    }
     
     $g_locale_lang = $localelist_lang->get();
+    unless(defined $g_locale_lang) {
+        $info->text('You must select a language');
+        return;
+    }    
     $g_locale_lang =~ s/\s+.*//;
     chomp($g_locale_lang);
     
     $g_locale_time = $localelist_time->get();
-    if(defined($g_locale_time)) {
+    if(defined $g_locale_time) {
         $g_locale_time =~ s/\s+.*//;
         chomp($g_locale_time);
     }
     
-    $g_localetime = $localetimecb->get();
+    $g_use_localetime = $localetimecb->get();    
     
-    $info->text('System configuration applied');
+    $win{'CNET'}->focus;
 }
 
 #=======================================================================
@@ -656,27 +744,51 @@ sub CNET_staticip_changed
     }
 }
 
-sub CNET_nav_apply
+sub CNET_nav_continue
 {
     use vars qw($g_hostname $g_interface $g_static_ip $g_ip $g_domain);
     
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $info = $win->getobj('info');    
-    my $hostnameentry = $win->getobj('hostnameentry');
-    my $staticipcb = $win->getobj('staticipcb');
+    my $info = $win->getobj('info');
     my $interfacelist = $win->getobj('interfacelist');
+    my $hostnameentry = $win->getobj('hostnameentry');
+    my $staticipcb = $win->getobj('staticipcb');        
     my $ipentry = $win->getobj('ipentry');
-    my $domainentry = $win->getobj('domainentry');
+    my $domainentry = $win->getobj('domainentry');    
+        
+    $g_interface = $interfacelist->get();
+    if(defined($g_interface))
+    {
+        $g_interface =~ s/\s+.*$//;
+        
+        $g_hostname = trim($hostnameentry->get());
+        unless (length $g_hostname)
+        {
+            $info->text("You must choose a hostname for interface $g_interface");
+            return;
+        }        
+        
+        $g_static_ip = $staticipcb->get();
+        if($g_static_ip)
+        {
+            $g_ip = trim($ipentry->get());
+            unless(length $g_ip)
+            {
+                $info->text("You must choose a IP address for static interface $g_interface");
+                return;
+            }
+            
+            $g_domain = trim($domainentry->get());
+            unless(length $g_domain)
+            {
+                $info->text("You must choose a domain for static interface $g_interface");
+                return;
+            }            
+        }
+    }            
     
-    $g_hostname = $hostnameentry->get();
-    $g_interface = $interfacelist->get();    
-    $g_interface =~ s/\s+.*$//;    
-    $g_static_ip = $staticipcb->get();    
-    $g_ip = $ipentry->get();
-    $g_domain = $domainentry->get();
-    
-    $info->text('Networking configuration applied');
+    $win{'IS'}->focus;    
 }
 
 #=======================================================================
@@ -694,8 +806,8 @@ sub IS_focus
 sub IS_nav_make_install
 {
     use vars qw($g_keymap $g_font $g_fontmap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
-    $g_timezone $g_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
-    $g_domain $g_disk $g_rc_conf $g_locale_lang $g_locale_time $g_install_script $g_guided);
+    $g_timezone $g_use_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
+    $g_domain $g_disk $g_rc_conf $g_locale_lang $g_locale_time $g_install_script $g_partitioning_scheme);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -703,80 +815,10 @@ sub IS_nav_make_install
 
     # make sure all required variables are set
     
-    if(!defined($g_disk)) {
+    unless(defined $g_disk) {
         $viewer->text('Disk undefined');
         return;
-    }
-    
-    if(!defined($g_keymap)) {
-        $viewer->text('Keymap undefined');
-        return;
-    }
-    
-    if(!defined($g_bootloader)) {
-        $viewer->text('Bootloader undefined');
-        return;
     }    
-    
-    if(!@g_partition_table) {
-        $viewer->text('Partition table is empty');
-        return;
-    }    
-    
-    if(!defined($g_timezone)) {
-        $viewer->text('No timezone set');
-        return;
-    }
-    
-    if(!@g_locales) {
-        $viewer->text('No locales enabled');
-        return;
-    }
-    
-    if(!defined($g_locale_lang)) {
-        $viewer->text('Language locale not set');
-        return;
-    }
-    
-    if(defined($g_interface)) {
-        
-        if(!defined($g_hostname)) {
-            $viewer->text('Hostname not set');
-            return;
-        }
-        
-        if($g_static_ip) {
-            
-            if(!defined($g_ip)) {
-                $viewer->text('IP address not set for static interface');
-                return;
-            }
-            
-            if(!defined($g_domain)) {
-                $viewer->text('Domain not set for static interface');
-                return;
-            }
-        }
-    }
-    
-    # make sure the bios and root partitions are set
-    
-    my ($bios_found, $root_found) = (0, 0);
-    foreach(@g_partition_table) {
-        my ($dsk, $mount, $fs, $size) = split /:/;
-        if($mount eq 'root') { $root_found = 1; }
-        elsif($mount eq 'bios') { $bios_found = 1; }
-    }
-    
-    if(!$bios_found) {
-        $viewer->text('No bios partition found');
-        return;
-    }
-    
-    if(!$root_found) {
-        $viewer->text('No root partition found');
-        return;
-    }
     
     # create and generate the installer script
         
@@ -785,7 +827,7 @@ sub IS_nav_make_install
     emit_line($inst, "set -e");    
     emit_line($inst, "if [[ \$1 != \"--configure\" ]]; then # This part runs before chroot");
     
-    if($g_guided) {    
+    if($g_partitioning_scheme eq 'guided') {    
         emit_line($inst, "parted -s $g_disk mktable gpt");
         
         my $last_mountpoint;    
@@ -804,6 +846,8 @@ sub IS_nav_make_install
     }
     
     emit($inst, "\n");
+        
+    my $separate_boot_partition = grep { $_ =~ /.+:boot:.+/ } @g_partition_table;    
         
     foreach(@g_partition_table) {
         my ($partition, $mountpoint, $filesystem, $size) = split /:/;
@@ -824,6 +868,10 @@ sub IS_nav_make_install
         }
         
         if($mountpoint eq 'root') {
+            if(!$separate_boot_partition) {
+                $partition =~ /.+(\d)$/;
+                emit_line($inst, "parted $g_disk set $1 boot on");
+            }
             emit_line($inst, "mount $partition /mnt");
         }        
     }
@@ -832,14 +880,14 @@ sub IS_nav_make_install
         
     foreach(@g_partition_table) {
         my ($partition, $mountpoint, $filesystem, $size) = split /:/;
-        $partition =~ /.*(\d)$/;
+        $partition =~ /.+(\d)$/;
         my $partition_number = $1;
         given($mountpoint) {
             when('bios') {                
                 emit_line($inst, "parted $g_disk set $partition_number bios_grub on");                                            
             }
             when('boot') {
-                emit_line($inst, "parted $g_disk set $partition_number boot on"); # FIXME boot may not exist
+                emit_line($inst, "parted $g_disk set $partition_number boot on");
                 emit_line($inst, "mkdir /mnt/boot");
                 emit_line($inst, "mount $partition /mnt/boot");
             }
@@ -874,12 +922,15 @@ sub IS_nav_make_install
         emit_line($inst, "pacstrap /mnt wireless_tools netcfg wpa_supplicant wpa_actiond");
     }
     
-    given($g_bootloader) {
-        when('grub') {
-            emit_line($inst, "pacstrap /mnt grub-bios");
-        }
-        when('syslinux') {
-            emit_line($inst, "pacstrap /mnt syslinux");
+    if(defined $g_bootloader)
+    {
+        given($g_bootloader) {
+            when('grub') {
+                emit_line($inst, "pacstrap /mnt grub-bios");
+            }
+            when('syslinux') {
+                emit_line($inst, "pacstrap /mnt syslinux");
+            }
         }
     }
     
@@ -1073,7 +1124,7 @@ sub IS_nav_make_install
    
     # setup hardware clock
         
-    if($g_localetime) {
+    if($g_use_localetime) {
         emit_line($inst, "hwclock --systohc --localtime");
     }
     else {
@@ -1084,18 +1135,22 @@ sub IS_nav_make_install
     
     emit_line($inst, "mkinitcpio -p linux");
     
-    # configure bootloader
+    # install bootloader
     
-    given($g_bootloader) {
-        when('syslinux') {
-            emit_line($inst, "/usr/sbin/syslinux-install_update -iam");
-        }        
-        when('grub') {
-            emit_line($inst, "grub-install $g_disk");
-            emit_line($inst, "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo");
-            emit_line($inst, "grub-mkconfig -o /boot/grub/grub.cfg");
-        }        
-    }    
+    if(defined $g_bootloader)
+    {
+        given($g_bootloader)
+        {
+            when('grub') {
+                emit_line($inst, "grub-install $g_disk");
+                emit_line($inst, "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo");
+                emit_line($inst, "grub-mkconfig -o /boot/grub/grub.cfg");
+            }
+            when('syslinux') {
+                emit_line($inst, "/usr/sbin/syslinux-install_update -iam");
+            }        
+        }
+    }
         
     emit_line($inst, "passwd");    
     

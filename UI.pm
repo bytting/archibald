@@ -25,10 +25,11 @@ use warnings;
 use Curses::UI;
 require Callbacks;
 
+use vars qw(%win);
+
 my $cui;
-my %win = ();
 my %win_args = (-border => 1, -titlereverse => 0, -pad => 1, -ipad => 1, -bfg => 'red', -tfg => 'green');
-my %info_args = (-x => 0, -y => 0, -width => -1, -bold => 1, -fg => 'red');
+my %info_args = (-x => 0, -y => 0, -width => -1, -bold => 1, -fg => 'yellow');
 
 sub handler_quit()
 {
@@ -37,7 +38,7 @@ sub handler_quit()
 }
 
 sub run()
-{        
+{    
     $cui = Curses::UI->new(-color_support => 1,-clear_on_exit => 1);    
 
     #=======================================================================
@@ -47,7 +48,7 @@ sub run()
     $win{'MM'} = $cui->add(undef, 'Window', -title => 'Archibald: Main menu', %win_args, -onFocus => \&MM_focus);
 
     $win{'MM'}->add('viewer', 'TextViewer', -x => 0, -y => 0, -width => -1, -height => 16, -bold => 1, -singleline => 0,
-        -wrapping => 1, -vscrollbar => 'right', -fg => 'green');
+        -wrapping => 1, -vscrollbar => 'right');
     
     $win{"MM"}->add('nav', 'Buttonbox', -y => -1,
         -buttons  => [            
@@ -68,18 +69,12 @@ sub run()
     
     $win{'CK'}->add('fontlist', 'Radiobuttonbox', -x => 38, -y => 2, -width => 34, -height => 7, -vscrollbar => 'right', -border => 1, -title => 'Available fonts');
     
-    $win{'CK'}->add('fontmaplist', 'Radiobuttonbox', -x => 38, -y => 9, -width => 34, -height => 7, -vscrollbar => 'right', -border => 1, -title => 'Available fontmaps');
-    
-    $win{'CK'}->add('opt', 'Buttonbox', -y => -2,
-        -buttons  => [                        
-            { -label => '<Apply>', -value => 'apply', -onpress => \&CK_nav_apply }
-        ]
-    );
+    $win{'CK'}->add('fontmaplist', 'Radiobuttonbox', -x => 38, -y => 9, -width => 34, -height => 7, -vscrollbar => 'right', -border => 1, -title => 'Available fontmaps');    
     
     $win{'CK'}->add('nav', 'Buttonbox', -y => -1,
         -buttons  => [            
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'MM'}->focus } },            
-            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SPS'}->focus } }
+            { -label => '<Continue>', -value => 'continue', -onpress => \&CK_nav_continue }
         ]
     );                
     
@@ -91,16 +86,14 @@ sub run()
 
     $win{'SPS'}->add('info', 'Label', %info_args);        
     
-    $win{'SPS'}->add('menu', 'Buttonbox', -x => 0, -y => 2, -vertical => 1,
-        -buttons => [            
-            { -label => 'Manual partitioning with gdisk', -value => 'manual', -onpress => sub { $win{'SD'}->focus } },
-            { -label => 'Guided partitioning (Use entire disk)', -value => 'guided', -onpress => sub { $win{'GP'}->focus } }
-        ]
-    );
+    $win{'SPS'}->add('schemelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Partitionong schemes',
+        -values => ['guided', 'gdisk', 'fdisk'],
+        -labels => { guided => 'Guided partitioning (Use entire disk)', gdisk => 'Manual partitioning with gdisk (gpt)', fdisk => 'Manual partitioning with fdisk' } );    
     
     $win{'SPS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
-            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } }            
+            { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CK'}->focus } },
+            { -label => '<Continue>', -value => 'continue', -onpress => \&SPS_nav_continue }
         ]
     );
     
@@ -112,10 +105,10 @@ sub run()
 
     $win{'GP'}->add('info', 'Label', %info_args);
     
-    $win{'GP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Avail. disks',
+    $win{'GP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Available disks',
         -onchange => \&GP_devicelist_change);
     
-    $win{'GP'}->add('parttable', 'Listbox', -x => 0, -y => 8, -width => -1, -height => 9, -border => 1, -vscrollbar => 'right', -title => 'Partition | Mountpoint | Filesystem | Size (MB)');
+    $win{'GP'}->add('parttable', 'Listbox', -x => 0, -y => 8, -width => -1, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Partition | Mountpoint | Filesystem | Size (MB)');
     
     $win{'GP'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
@@ -163,7 +156,7 @@ sub run()
     
     $win{'MP'}->add('parttable', 'Listbox', -x => 0, -y => 8, -width => -1, -height => 8, -border => 1, -vscrollbar => 'right', -title => 'Current configuration');
     
-    $win{'MP'}->add('opt', 'Buttonbox', -y => -2, -onFocus => \&MP_nav_focus,
+    $win{'MP'}->add('opt', 'Buttonbox', -y => -3, -onFocus => \&MP_nav_focus,
         -buttons => [            
             { -label => '<Add to configuration>', -value => 'add', -onpress => \&MP_nav_add },            
             { -label => '<Clear>', -value => 'clear', -onpress => \&MP_nav_clear }        
@@ -173,7 +166,7 @@ sub run()
     $win{'MP'}->add('nav', 'Buttonbox', -y => -1, -onFocus => \&MP_nav_focus,
         -buttons => [
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SD'}->focus } },            
-            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SM'}->focus } }
+            { -label => '<Continue>', -value => 'continue', -onpress => \&MP_nav_continue }
         ]
     );    
     
@@ -185,18 +178,12 @@ sub run()
     
     $win{'SM'}->add('info', 'Label', %info_args, -text => 'Select the mirrors you want to enable');
     
-    $win{'SM'}->add('mirrorlist', 'Listbox', -x => 0, -y => 2, -width => -1, -height => 14, -vscrollbar => 'right', -hscrollbar => 'top', -border => 1, -multi => 1, -title => 'Mirror servers');
-    
-    $win{'SM'}->add('opt', 'Buttonbox', -y => -2,
-        -buttons => [            
-            { -label => '<Apply selection>', -value => 'apply', -onpress => \&SM_nav_apply }
-        ]
-    );
+    $win{'SM'}->add('mirrorlist', 'Listbox', -x => 0, -y => 2, -width => -1, -height => 14, -vscrollbar => 'right', -hscrollbar => 'top', -border => 1, -multi => 1, -title => 'Mirror servers');    
     
     $win{'SM'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'GP'}->focus } },    
-            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'SP'}->focus } }
+            { -label => '<Continue>', -value => 'continue', -onpress => \&SM_nav_continue }
         ]
     );    
     
@@ -210,18 +197,14 @@ sub run()
     
     $win{'SP'}->add('bootloaderlist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 5, -border => 1, -vscrollbar => 'right', -title => 'Available bootloaders');
     
-    $win{'SP'}->add('wirelesstoolscb', 'Checkbox', -x => 1, -y => 8, -label => 'Install wireless tools');
+    $win{'SP'}->add('devicelist', 'Radiobuttonbox', -x => 0, -y => 7, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Install bootloader on');
     
-    $win{'SP'}->add('opt', 'Buttonbox', -y => -2,
-        -buttons => [            
-            { -label => '<Apply>', -value => 'apply', -onpress => \&SP_nav_apply }
-        ]
-    );
+    $win{'SP'}->add('wirelesstoolscb', 'Checkbox', -x => 1, -y => 13, -label => 'Install wireless tools');    
     
     $win{'SP'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SM'}->focus } },            
-            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'CS'}->focus } }
+            { -label => '<Continue>', -value => 'continue', -onpress => \&SP_nav_continue }
         ]
     );    
     
@@ -236,21 +219,15 @@ sub run()
     $win{'CS'}->add('timezonelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => 35, -height => 7, -vscrollbar => 'right', -border => 1, -title => 'Timezone *');    
     $win{'CS'}->add('localelist', 'Listbox', -x => 35, -y => 2, -width => 35, -height => 7, -vscrollbar => 'right', -border => 1, -multi => 1, -title => 'Locales *');
         
-    $win{'CS'}->add('localelist_lang', 'Radiobuttonbox', -x => 0, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'Language *');
-    $win{'CS'}->add('localelist_time', 'Radiobuttonbox', -x => 35, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'Time');
+    $win{'CS'}->add('localelist_lang', 'Radiobuttonbox', -x => 0, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'LANG *');
+    $win{'CS'}->add('localelist_time', 'Radiobuttonbox', -x => 35, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'LC_TIME');
     
-    $win{'CS'}->add('localetimecb', 'Checkbox', -x => 0, -y => 15, -label => 'Use localtime');    
-    
-    $win{'CS'}->add('opt', 'Buttonbox', -y => -2,
-        -buttons => [            
-            { -label => '<Apply>', -value => 'apply', -onpress => \&CS_nav_apply }
-        ]
-    );
+    $win{'CS'}->add('localetimecb', 'Checkbox', -x => 0, -y => 15, -label => 'Use localtime');        
     
     $win{'CS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'SP'}->focus } },    
-            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'CNET'}->focus } }
+            { -label => '<Continue>', -value => 'continue', -onpress => \&CS_nav_continue }
         ]
     );    
     
@@ -270,18 +247,12 @@ sub run()
     $win{'CNET'}->add('staticipcb', 'Checkbox', -x => 34, -y => 9, -label => 'Use static ip', -checked => 0, -onchange => \&CNET_staticip_changed);        
     
     $win{'CNET'}->add('ipentry', 'TextEntry', -x => 0, -y => 11, -width => 30, -border => 1, -title => 'IP Address');    
-    $win{'CNET'}->add('domainentry', 'TextEntry', -x => 31, -y => 11, -width => 30, -border => 1, -title => 'Domain', -text => 'localdomain');
-    
-    $win{'CNET'}->add('opt', 'Buttonbox', -y => -2,
-        -buttons => [            
-            { -label => '<Apply>', -value => 'apply', -onpress => \&CNET_nav_apply }        
-        ]
-    );
+    $win{'CNET'}->add('domainentry', 'TextEntry', -x => 31, -y => 11, -width => 30, -border => 1, -title => 'Domain', -text => 'localdomain');    
     
     $win{'CNET'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CS'}->focus } },            
-            { -label => '<Continue>', -value => 'continue', -onpress => sub { $win{'IS'}->focus } }
+            { -label => '<Continue>', -value => 'continue', -onpress => \&CNET_nav_continue }
         ]
     );    
     

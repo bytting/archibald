@@ -21,7 +21,8 @@
 use strict;
 use warnings;
 
-our ($g_keymap,
+our (%win,
+     $g_keymap,
      $g_keymap_directory,
      $g_keymap_extension,
      $g_font,
@@ -40,7 +41,7 @@ our ($g_keymap,
      $g_locale_gen,
      $g_rc_conf,
      $g_timezone,
-     $g_localtime,
+     $g_use_localtime,
      @g_locales,
      $g_locale_lang,
      $g_locale_time,
@@ -53,9 +54,11 @@ our ($g_keymap,
      %g_disks,
      @g_mountpoints,
      $g_install_script,
-     $g_guided);
+     $g_partitioning_scheme,
+     $g_boot_disk);
 
 # Default values
+%win = ();
 $g_keymap = 'us';
 $g_keymap_directory = '/usr/share/kbd/keymaps/';
 $g_keymap_extension = '.map.gz';
