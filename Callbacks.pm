@@ -38,7 +38,10 @@ sub MM_focus {
     my $viewer = $win->getobj('viewer');
     my $nav = $win->getobj('nav');
     
-    $viewer->text("Welcome to Archibald...\nYou can press CTRL+q to quit without saving at any time.\nFields marked with an asterisk is required for a minimal configuration.\nPress continue to start");
+    $viewer->text("Welcome to Archibald...\nYou can press CTRL+q to quit without saving at any time.
+Fields marked with an asterisk is required for a minimal configuration.
+Setting font and fontmap is not advised unless you know it supports your chosen keymap.
+Press continue to start");
     
     $nav->focus;
 }
@@ -587,8 +590,6 @@ sub CS_focus
     my $info = $win->getobj('info');
     my $timezonelist = $win->getobj('timezonelist');
     my $localelist = $win->getobj('localelist');
-    #my $localelist_lang = $win->getobj('localelist_lang');
-    #my $localelist_time = $win->getobj('localelist_time');
     
     # populate timezones    
     my ($err, @timezones) = find_zoneinfo($g_timezone_directory);
@@ -620,9 +621,7 @@ sub CS_focus
         }        
     }
     
-    $localelist->values(\@locales);
-    #$localelist_lang->values(\@locales);
-    #$localelist_time->values(\@locales);    
+    $localelist->values(\@locales);    
 }
 
 sub CS_localelist_selchange
@@ -633,7 +632,7 @@ sub CS_localelist_selchange
     my $localelist_lang = $win->getobj('localelist_lang');
     my $localelist_time = $win->getobj('localelist_time');
             
-    my @trimmed_locales = grep { $_ =~ s/\s+.*// } $localelist->get();
+    my @trimmed_locales = sort grep { $_ =~ s/\s+.*// } $localelist->get();
         
     $localelist_lang->values(\@trimmed_locales);
     $localelist_time->values(\@trimmed_locales);    
@@ -1007,7 +1006,7 @@ sub IS_nav_make_install
     
     emit_line($inst, "umount /mnt");    
     
-    emit_line($inst, "echo \"Installation was a success\"");
+    emit_line($inst, "echo \"Installation was a success. You may reboot into you new system\"");
     
     emit_line($inst, "\n\nelse # This part runs in chroot\n\n");    
     
