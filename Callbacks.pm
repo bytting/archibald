@@ -1012,7 +1012,7 @@ sub IS_nav_make_install
             }
             
             if(!$found) {
-                if($line !~ /^#/) { print $out '#' . $line; }
+                if($line !~ /^#/) { print $out "#$line"; }
                 else { print $out $line; }
             }        
         }
@@ -1090,7 +1090,7 @@ sub IS_nav_make_install
         emit_line($inst, "echo \"::1          localhost.localdomain   localhost   $g_hostname\" >> /etc/hosts");
         
         if($g_static_ip) {
-            emit_line($inst, "echo \"\$ip  \$hostname.\$domain   \$hostname\" >> /etc/hosts");
+            emit_line($inst, "echo \"$g_ip  $g_hostname.$g_domain   $g_hostname\" >> /etc/hosts");
         }
     }
     
