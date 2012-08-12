@@ -41,6 +41,7 @@ sub MM_focus {
     $viewer->text("Welcome to Archibald...\nYou can press CTRL+q to quit without saving at any time.
 Fields marked with an asterisk is required for a minimal configuration.
 Setting font and fontmap is not advised unless you know it supports your chosen keymap.
+Navigate using TAB and SHIFT+TAB, and select items with SPACE.
 Press continue to start");
     
     $nav->focus;
@@ -401,16 +402,30 @@ sub MP_nav_add
         $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
     );                
     
-    my $dev = $partlist->get();    
-    my $entry = $dev . ':' . $mountlist->get() . ':' . $fslist->get();
+    my $partition = $partlist->get();
+    unless(defined $partition) {
+        $info->text('You must select a partition');
+        return;
+    }
+    my $mountpoint = $mountlist->get();
+    unless(defined $mountpoint) {
+        $info->text('You must select a mountpoint');
+        return;
+    }
+    my $filesystem = $fslist->get();
+    unless(defined $filesystem) {
+        $info->text('You must select a filesystem');
+        return;
+    }
+    
+    my $entry = $partition . ':' . $mountpoint . ':' . $filesystem;
     
     push @g_partition_table, $entry;
             
-    @g_available_partitions = grep { $_ ne $dev } @g_available_partitions;
+    @g_available_partitions = grep { $_ ne $partition } @g_available_partitions;
     $partlist->values(\@g_available_partitions);
-    
-    my $item = $mountlist->get();
-    @g_mountpoints = grep { $_ ne $item } @g_mountpoints;
+        
+    @g_mountpoints = grep { $_ ne $mountpoint } @g_mountpoints;
     $mountlist->values(\@g_mountpoints);
     
     $parttable->values(\@g_partition_table);
@@ -420,7 +435,7 @@ sub MP_nav_add
     $parttable->draw(0);     
     $partlist->focus;
     
-    $info->text('Entry added...');
+    $info->text('Entry added to configuration...');
 }
 
 sub MP_nav_clear
