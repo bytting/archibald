@@ -199,7 +199,7 @@ sub GP_focus
         my @dinfo = grep { $_ =~ /^First usable sector is/ } @out;            
         my @secsizes = $dinfo[0] =~ /(\d+)/g;        
         my $seccnt = $secsizes[1] - $secsizes[0];        
-        $g_disks{$disk} = $seccnt * 512 / 1000 / 1000 - 1;        
+        $g_disks{$disk} = $seccnt * 512 / 1024 / 1024 - 1;        
     }    
     
     $devicelist->values(sort keys %g_disks);
@@ -660,10 +660,12 @@ sub CS_nav_continue
     chomp($g_locale_lang);
     
     $g_locale_time = $localelist_time->get();
-    if(defined $g_locale_time) {
-        $g_locale_time =~ s/\s+.*//;
-        chomp($g_locale_time);
+    unless(defined $g_locale_time) {
+        $info->text('You must select LC_TIME');
+        return;
     }
+    $g_locale_time =~ s/\s+.*//;
+    chomp($g_locale_time);
     
     $g_use_localetime = $localetimecb->get();    
     
