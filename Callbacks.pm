@@ -807,7 +807,7 @@ sub IS_nav_make_install
 {
     use vars qw($g_keymap $g_font $g_fontmap $g_bootloader $g_wirelesstools @g_partition_table @g_mirrors
     $g_timezone $g_use_localetime @g_locales $g_locale_lang $g_hostname $g_interface $g_static_ip $g_ip
-    $g_domain $g_disk $g_rc_conf $g_locale_lang $g_locale_time $g_install_script $g_partitioning_scheme);
+    $g_domain $g_disk $g_rc_conf $g_locale_lang $g_locale_time $g_install_script $g_partitioning_scheme $g_boot_disk);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -1142,7 +1142,7 @@ sub IS_nav_make_install
         given($g_bootloader)
         {
             when('grub') {
-                emit_line($inst, "grub-install $g_disk");
+                emit_line($inst, "grub-install $g_boot_disk");
                 emit_line($inst, "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo");
                 emit_line($inst, "grub-mkconfig -o /boot/grub/grub.cfg");
             }
