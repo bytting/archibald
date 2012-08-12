@@ -249,6 +249,9 @@ sub run()
     $win{'CNET'}->add('ipentry', 'TextEntry', -x => 0, -y => 11, -width => 30, -border => 1, -title => 'IP Address');    
     $win{'CNET'}->add('domainentry', 'TextEntry', -x => 31, -y => 11, -width => 30, -border => 1, -title => 'Domain', -text => 'localdomain');    
     
+    $win{'CNET'}->add('netmaskentry', 'TextEntry', -x => 0, -y => 14, -width => 30, -border => 1, -title => 'Netmask', -text => '255.255.255.0');    
+    $win{'CNET'}->add('gatewayentry', 'TextEntry', -x => 31, -y => 14, -width => 30, -border => 1, -title => 'Gateway', -text => '192.168.1.1');
+    
     $win{'CNET'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
             { -label => '<Back>', -value => 'back', -onpress => sub { $win{'CS'}->focus } },            

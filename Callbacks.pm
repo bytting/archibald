@@ -746,7 +746,7 @@ sub CNET_staticip_changed
 
 sub CNET_nav_continue
 {
-    use vars qw($g_hostname $g_interface $g_static_ip $g_ip $g_domain);
+    use vars qw($g_hostname $g_interface $g_static_ip $g_ip $g_domain $g_netmask $g_gateway);
     
     my $bbox = shift;
     my $win = $bbox->parent;
@@ -755,7 +755,9 @@ sub CNET_nav_continue
     my $hostnameentry = $win->getobj('hostnameentry');
     my $staticipcb = $win->getobj('staticipcb');        
     my $ipentry = $win->getobj('ipentry');
-    my $domainentry = $win->getobj('domainentry');    
+    my $domainentry = $win->getobj('domainentry');
+    my $netmaskentry = $win->getobj('netmaskentry');
+    my $gatewayentry = $win->getobj('gatewayentry');    
         
     $g_interface = $interfacelist->get();
     if(defined($g_interface))
@@ -784,7 +786,21 @@ sub CNET_nav_continue
             {
                 $info->text("You must choose a domain for static interface $g_interface");
                 return;
-            }            
+            }
+            
+            $g_netmask = trim($netmaskentry->get());
+            unless(length $g_netmask)
+            {
+                $info->text("You must choose a netmask for static interface $g_interface");
+                return;
+            }
+            
+            $g_gateway = trim($gatewayentry->get());
+            unless(length $g_gateway)
+            {
+                $info->text("You must choose a gateway for static interface $g_interface");
+                return;
+            }
         }
     }            
     
@@ -1104,6 +1120,15 @@ sub IS_nav_make_install
     while(my $line = <$in>) {        
         if ($line =~ /^[#\s]*interface=/ and defined($g_interface)) {            
             print $out "interface=$g_interface\n";            
+        }
+        elsif($line =~ /^[#\s]*address=/ and defined $g_interface and defined $g_static_ip) {
+            print $out "address=$g_ip\n";            
+        }
+        elsif($line =~ /^[#\s]*netmask=/ and defined $g_interface and defined $g_static_ip) {
+            print $out "netmask=$g_netmask\n";            
+        }
+        elsif($line =~ /^[#\s]*gateway=/ and defined $g_interface and defined $g_static_ip) {
+            print $out "gateway=$g_gateway\n";            
         }
         else {
             print $out $line;
