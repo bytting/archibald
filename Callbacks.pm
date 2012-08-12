@@ -168,10 +168,7 @@ sub SPS_nav_continue
         }
         when('gdisk') {
             $win{'SD'}->focus;
-        }
-        when('fdisk') {
-            $win{'SD'}->focus;
-        }
+        }        
     }    
 }
 
@@ -906,7 +903,7 @@ sub IS_nav_make_install
             when('ext4') {
                 emit_line($inst, "mkfs.ext4 $partition");
             }
-            when('swap') {
+            when('swap') {                
                 emit_line($inst, "mkswap $partition");
                 emit_line($inst, "swapon $partition");
             }
