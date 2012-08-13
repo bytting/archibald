@@ -18,8 +18,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #=======================================================================
 
-#package Arch_Callbacks;
-
 use strict;
 use warnings;
 use File::Basename;
@@ -1184,7 +1182,9 @@ sub IS_nav_make_install
     close $inst;
     chmod 0755, "$g_install_script";
     
-    $viewer->text("Congratulations!\nAn installer has been saved as $g_install_script. You may quit and install Arch with the following command: ./$g_install_script");
+    $viewer->text("Congratulations!
+A installer script has been saved as $g_install_script.
+You may quit and install Arch linux with the following command: ./$g_install_script");
 }
 
 #=======================================================================
