@@ -258,7 +258,11 @@ sub SD_focus
     @sd_disks = glob("/sys/block/sd*");
     @hd_disks = glob("/sys/block/hd*");
     foreach (@sd_disks, @hd_disks)
-    {        
+    {
+        open FILE, "<$_/size";
+        my $contents = do { local $/; <FILE> };
+        close FILE;
+        if($contents <= 0) { next }
         s/^\/sys\/block\///;
         push @disks, $_;                    
     }    
@@ -309,15 +313,11 @@ sub MP_focus
     $mountlist->clear_selection();
     $fslist->clear_selection();
     
-    my @pi;
-    my @p = `parted $g_disk print`;
-    foreach(@p) {
-        if(/^\s\d\s/) {
-            s/^\s*//;
-           @pi = split(/\s+/, $_);
-           push @g_available_partitions, "$g_disk$pi[0]";
-        }
-    }
+    my @parts = grep { $_ =~ /^\s+\d+/ } `gdisk $g_disk -l`;
+    foreach(@parts) {
+        /^\s+(\d+)/;
+        push @g_available_partitions, "$g_disk$1";
+    }    
     
     @g_mountpoints = ('bios', 'boot', 'swap', 'root', 'home', 'usr', 'var', 'dev', 'sys');    
     
