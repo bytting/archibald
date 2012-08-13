@@ -55,7 +55,8 @@ sub CK_focus
     
     my $win = shift;
     my $info = $win->getobj('info');
-    my ($keymaplist, $fontlist, $fontmaplist) = ($win->getobj('keymaplist'), $win->getobj('fontlist'), $win->getobj('fontmaplist'));
+    my ($keymaplist, $fontlist, $fontmaplist) =
+        ($win->getobj('keymaplist'), $win->getobj('fontlist'), $win->getobj('fontmaplist'));
     
     # setup keymaps    
     my ($err, @keymaps, @fonts, @fontmaps);
@@ -111,7 +112,8 @@ sub CK_nav_continue
     my $bbox = shift;
     my $win = $bbox->parent;    
     my $info = $win->getobj('info');
-    my ($keymaplist, $fontlist, $fontmaplist) = ($win->getobj('keymaplist'), $win->getobj('fontlist'), $win->getobj('fontmaplist'));    
+    my ($keymaplist, $fontlist, $fontmaplist) =
+        ($win->getobj('keymaplist'), $win->getobj('fontlist'), $win->getobj('fontmaplist'));    
     
     my $keymap = $keymaplist->get();    
     
@@ -176,8 +178,7 @@ sub GP_focus
     
     my $win = shift;    
     my $info = $win->getobj('info');    
-    my $devicelist = $win->getobj('devicelist');
-    my $parttable = $win->getobj('parttable');      
+    my ($devicelist, $parttable) = ($win->getobj('devicelist'), $win->getobj('parttable'));    
     
     my (@sd_disks, @hd_disks);
     @sd_disks = glob("/sys/block/sd*");
@@ -208,11 +209,10 @@ sub GP_devicelist_change
     use vars qw(%g_disks @g_partition_table $g_disk);
     
     my $bbox = shift;
-    my $win = $bbox->parent;    
+    my $win = $bbox->parent;
     my $info = $win->getobj('info');
-    my $nav = $win->getobj('nav');
-    my $parttable = $win->getobj('parttable');
-    my $devicelist = $win->getobj('devicelist');    
+    my ($nav, $parttable, $devicelist) =
+        ($win->getobj('nav'), $win->getobj('parttable'), $win->getobj('devicelist'));        
     my $device = $devicelist->get();    
     
     $g_disk = "/dev/$device";
@@ -1119,13 +1119,13 @@ sub IS_nav_make_install
         if ($line =~ /^[#\s]*interface=/ and defined($g_interface)) {            
             print $out "interface=$g_interface\n";            
         }
-        elsif($line =~ /^[#\s]*address=/ and defined $g_interface and defined $g_static_ip) {
+        elsif($line =~ /^[#\s]*address=/ and defined $g_interface and $g_static_ip) {
             print $out "address=$g_ip\n";            
         }
-        elsif($line =~ /^[#\s]*netmask=/ and defined $g_interface and defined $g_static_ip) {
+        elsif($line =~ /^[#\s]*netmask=/ and defined $g_interface and $g_static_ip) {
             print $out "netmask=$g_netmask\n";            
         }
-        elsif($line =~ /^[#\s]*gateway=/ and defined $g_interface and defined $g_static_ip) {
+        elsif($line =~ /^[#\s]*gateway=/ and defined $g_interface and $g_static_ip) {
             print $out "gateway=$g_gateway\n";            
         }
         else {
