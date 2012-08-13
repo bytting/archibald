@@ -87,8 +87,8 @@ sub run()
     $win{'SPS'}->add('info', 'Label', %info_args);        
     
     $win{'SPS'}->add('schemelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Partitionong schemes',
-        -values => ['guided', 'gdisk'],
-        -labels => { guided => 'Guided partitioning (Use entire disk)', gdisk => 'Manual partitioning with gdisk (gpt)' } );    
+        -values => ['guided', 'cgdisk'],
+        -labels => { guided => 'Guided partitioning (Use entire disk)', cgdisk => 'Manual partitioning with cgdisk (gpt)' } );    
     
     $win{'SPS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
@@ -270,9 +270,8 @@ sub run()
         -wrapping => 1, -vscrollbar => 'right');
     
     $win{'IS'}->add('opt', 'Buttonbox', -y => -2,
-        -buttons => [            
-            { -label => '<Generate installation script>', -value => 'ibs', -onpress => \&IS_nav_make_install }        
-            
+        -buttons => [
+            { -label => '<Generate installation script>', -value => 'gis', -onpress => \&IS_nav_make_install }
         ]
     );
     

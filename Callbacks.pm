@@ -57,15 +57,13 @@ sub CK_focus
     
     my $win = shift;
     my $info = $win->getobj('info');
-    my $keymaplist = $win->getobj('keymaplist');
-    my $fontlist = $win->getobj('fontlist');
-    my $fontmaplist = $win->getobj('fontmaplist');    
+    my ($keymaplist, $fontlist, $fontmaplist) = ($win->getobj('keymaplist'), $win->getobj('fontlist'), $win->getobj('fontmaplist'));
     
     # setup keymaps    
     my ($err, @keymaps, @fonts, @fontmaps);
     ($err, @keymaps) = find_files_deep($g_keymap_directory, $g_keymap_extension);
     if($err) {
-        $info->text('No keymaps found');
+        $info->text("No keymaps found in $g_keymap_directory");
         return;
     }
     
@@ -79,7 +77,7 @@ sub CK_focus
     # setup fonts
     ($err, @fonts) = find_files_deep($g_font_directory, $g_font_extension);
     if($err) {
-        $info->text('No fonts found');
+        $info->text("No fonts found in $g_font_directory");
         return;
     }
     
@@ -95,7 +93,7 @@ sub CK_focus
     # setup fontmaps
     ($err, @fontmaps) = find_files_deep($g_fontmap_directory, $g_fontmap_extension);
     if($err) {
-        $info->text('No fontmaps found');
+        $info->text("No fontmaps found in $g_fontmap_directory");
         return;
     }
     
@@ -115,9 +113,7 @@ sub CK_nav_continue
     my $bbox = shift;
     my $win = $bbox->parent;    
     my $info = $win->getobj('info');
-    my $keymaplist = $win->getobj('keymaplist');
-    my $fontlist = $win->getobj('fontlist');
-    my $fontmaplist = $win->getobj('fontmaplist');
+    my ($keymaplist, $fontlist, $fontmaplist) = ($win->getobj('keymaplist'), $win->getobj('fontlist'), $win->getobj('fontmaplist'));    
     
     my $keymap = $keymaplist->get();    
     
@@ -166,7 +162,7 @@ sub SPS_nav_continue
         when('guided') {
             $win{'GP'}->focus;
         }
-        when('gdisk') {
+        when('cgdisk') {
             $win{'SD'}->focus;
         }        
     }    
@@ -459,7 +455,7 @@ sub MP_nav_continue
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
     
-    if($g_partitioning_scheme eq 'gdisk')
+    if($g_partitioning_scheme eq 'cgdisk')
     {
         my $bios_partitions = grep { $_ =~ /.+:bios:.+/ } @g_partition_table;
         if($bios_partitions < 1)
@@ -646,13 +642,10 @@ sub CS_nav_continue
     
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $cui = $win->parent;
-    my $info = $win->getobj('info');    
-    my $timezonelist = $win->getobj('timezonelist');
-    my $localelist = $win->getobj('localelist');
-    my $localelist_lang = $win->getobj('localelist_lang');
-    my $localelist_time = $win->getobj('localelist_time');
-    my $localetimecb = $win->getobj('localetimecb');    
+    my ($cui, $info) = ($win->parent, $win->getobj('info'));    
+    my ($timezonelist, $localelist, $localelist_lang, $localelist_time, $localetimecb) =
+        ($win->getobj('timezonelist'), $win->getobj('localelist'), $win->getobj('localelist_lang'),
+         $win->getobj('localelist_time'), $win->getobj('localetimecb'));
         
     $g_timezone = $timezonelist->get();
     unless(defined $g_timezone) {
@@ -696,8 +689,10 @@ sub CNET_focus
     my @values;    
     my @ipc = `ip addr`;    
     
-    for (@ipc) {
-        if ( /^\d+:\s*(\w+).*state\s(\w+)/ ) {        
+    for (@ipc)
+    {
+        if ( /^\d+:\s*(\w+).*state\s(\w+)/ )
+        {        
             my ($if, $state) = ($1, $2);
             if($if eq 'lo') {
                 next;
@@ -712,12 +707,8 @@ sub CNET_focus
 sub CNET_interfacelist_changed
 {
     my $interfacelist = shift;
-    my $win = $interfacelist->parent;
-    my $info = $win->getobj('info');
-    my $staticipcb = $win->getobj('staticipcb');
-    my $hostnameentry = $win->getobj('hostnameentry');
-    my $ipentry = $win->getobj('ipentry');
-    my $domainentry = $win->getobj('domainentry');
+    my $win = $interfacelist->parent;        
+    my $hostnameentry = $win->getobj('hostnameentry');    
     
     my $item = $interfacelist->get();
     if($item) {
@@ -731,14 +722,9 @@ sub CNET_interfacelist_changed
 sub CNET_staticip_changed
 {
     my $bbox = shift;
-    my $win = $bbox->parent;
-    my $info = $win->getobj('info');
-    my $interfacelist = $win->getobj('interfacelist');
-    my $hostnameentry = $win->getobj('hostnameentry');
-    my $ipentry = $win->getobj('ipentry');
-    my $domainentry = $win->getobj('domainentry');    
-    
-    my $items = $interfacelist->get();
+    my $win = $bbox->parent;    
+    my ($interfacelist, $hostnameentry, $ipentry, $domainentry) =
+        ($win->getobj('interfacelist'), $win->getobj('hostnameentry'), $win->getobj('ipentry'), $win->getobj('domainentry'));
     
     my $state = $bbox->get();
     if($state) {
@@ -749,7 +735,7 @@ sub CNET_staticip_changed
     }
     else {
         $interfacelist->title('Available network interfaces');
-        if($items) {
+        if($interfacelist->get()) {
             $hostnameentry->title('Hostname *');
         }
         else {
@@ -767,13 +753,9 @@ sub CNET_nav_continue
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
-    my $interfacelist = $win->getobj('interfacelist');
-    my $hostnameentry = $win->getobj('hostnameentry');
-    my $staticipcb = $win->getobj('staticipcb');        
-    my $ipentry = $win->getobj('ipentry');
-    my $domainentry = $win->getobj('domainentry');
-    my $netmaskentry = $win->getobj('netmaskentry');
-    my $gatewayentry = $win->getobj('gatewayentry');    
+    my ($interfacelist, $hostnameentry, $staticipcb, $ipentry, $domainentry, $netmaskentry, $gatewayentry) =
+        ($win->getobj('interfacelist'), $win->getobj('hostnameentry'), $win->getobj('staticipcb'), $win->getobj('ipentry'),
+         $win->getobj('domainentry'), $win->getobj('netmaskentry'), $win->getobj('gatewayentry'));
         
     $g_interface = $interfacelist->get();
     if(defined($g_interface))
