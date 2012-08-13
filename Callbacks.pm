@@ -299,19 +299,17 @@ sub MP_focus
     my $win = shift;
     my $cui = $win->parent;
     my $info = $win->getobj('info');
-    my $partlist = $win->getobj('partlist');
-    my $mountlist = $win->getobj('mountlist');
-    my $fslist = $win->getobj('fslist');        
+    my ($partlist, $mountlist, $fslist) =
+        ($win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'));    
     
     @g_available_partitions = ();
     @g_partition_table = ();
+    $mountlist->clear_selection();
+    $fslist->clear_selection();
     
     $cui->leave_curses();
     system("clear && $g_partitioning_scheme $g_disk");
     $cui->reset_curses();
-    
-    $mountlist->clear_selection();
-    $fslist->clear_selection();
     
     my @parts = grep { $_ =~ /^\s+\d+/ } `gdisk $g_disk -l`;
     foreach(@parts) {
@@ -393,27 +391,16 @@ sub MP_nav_add
     
     my $bbox = shift;
     my $win = $bbox->parent;
-    my $info = $win->getobj('info');
-    my $remsize = $win->getobj('remsize');    
-    my ($partlist, $mountlist, $fslist, $partsize, $parttable) = (
-        $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('partsize'), $win->getobj('parttable')
-    );                
+    my $info = $win->getobj('info');    
+    my ($partlist, $mountlist, $fslist, $parttable) = (
+        $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('parttable'));                
     
-    my $partition = $partlist->get();
-    unless(defined $partition) {
-        $info->text('You must select a partition');
+    my ($partition, $mountpoint, $filesystem) = ($partlist->get(), $mountlist->get(), $fslist->get());
+    
+    unless(defined $partition and defined $mountpoint and defined $filesystem) {
+        $info->text('You must select partition, mountpoint and filesystem');
         return;
-    }
-    my $mountpoint = $mountlist->get();
-    unless(defined $mountpoint) {
-        $info->text('You must select a mountpoint');
-        return;
-    }
-    my $filesystem = $fslist->get();
-    unless(defined $filesystem) {
-        $info->text('You must select a filesystem');
-        return;
-    }
+    }    
     
     my $entry = $partition . ':' . $mountpoint . ':' . $filesystem;
     
@@ -441,27 +428,24 @@ sub MP_nav_clear
     
     my $bbox = shift;
     my $win = $bbox->parent;    
-    my ($partlist, $mountlist, $fslist) = ($win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'));
-    my $parttable = $win->getobj('parttable');
-           
+    my ($partlist, $mountlist, $fslist, $parttable) = (
+        $win->getobj('partlist'), $win->getobj('mountlist'), $win->getobj('fslist'), $win->getobj('parttable'));    
+    
+    @g_partition_table = ();           
     @g_available_partitions = ();
-    my @pi;
-    my @p = `parted $g_disk print`;
-    foreach(@p) {
-        if(/^\s\d\s/) {
-            s/^\s*//;
-           @pi = split(/\s+/, $_);
-           push @g_available_partitions, "$g_disk$pi[0]";
-        }
+    $mountlist->clear_selection();
+    $fslist->clear_selection();    
+    
+    my @parts = grep { $_ =~ /^\s+\d+/ } `gdisk $g_disk -l`;
+    foreach(@parts) {
+        /^\s+(\d+)/;
+        push @g_available_partitions, "$g_disk$1";
     }
     
-    $partlist->values(\@g_available_partitions);
-    
-    $mountlist->clear_selection();
     @g_mountpoints = ('bios', 'boot', 'swap', 'root', 'home', 'usr', 'var', 'dev', 'sys');
-    $mountlist->values(\@g_mountpoints);
-    $fslist->clear_selection();    
-    @g_partition_table = ();    
+    
+    $partlist->values(\@g_available_partitions);    
+    $mountlist->values(\@g_mountpoints);        
     $parttable->values(\@g_partition_table);
     $parttable->draw(0);    
     $partlist->focus;
@@ -475,19 +459,22 @@ sub MP_nav_continue
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
     
-    if($g_partitioning_scheme eq 'gdisk') {
+    if($g_partitioning_scheme eq 'gdisk')
+    {
         my $bios_partitions = grep { $_ =~ /.+:bios:.+/ } @g_partition_table;
-        if($bios_partitions < 1) {
+        if($bios_partitions < 1)
+        {
             $info->text('You must configure a bios partition when creating a gpt disk');
             return;
         }
     }
     
     my $root_partitions = grep { $_ =~ /.+:root:.+/ } @g_partition_table;
-        if($root_partitions < 1) {
-            $info->text('You must select a root partition');
-            return;
-        }
+    if($root_partitions < 1)
+    {
+        $info->text('You must configure a root partition');
+        return;
+    }
     
     $win{'SM'}->focus;                      
 }
@@ -501,8 +488,7 @@ sub SM_focus
     use vars qw($g_mirrorlist);
     
     my $win = shift;
-    my ($info, $mirrorlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));    
-    my ($prev, $url);
+    my ($info, $mirrorlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));        
     
     unless(-e $g_mirrorlist) {
         $info->text("The file $g_mirrorlist was not found");
@@ -512,9 +498,11 @@ sub SM_focus
     open FILE, $g_mirrorlist;
     my @content = <FILE>;
     close FILE;
-    my %mirrors;
-    foreach (@content) {
-        if(/^\s*#*\s*Server\s*=\s*(.*)/) {
+    my ($url, $prev, %mirrors);
+    foreach (@content)
+    {
+        if(/^\s*#*\s*Server\s*=\s*(.*)/)
+        {
             $url = $1;
             $prev =~ s/^[\s#]*//;
             $mirrors{$url} = $prev;
@@ -534,7 +522,8 @@ sub SM_nav_continue
     my ($info, $mirrorlist) = ($win->getobj('info'), $win->getobj('mirrorlist'));            
     @g_mirrors = $mirrorlist->get();
     
-    if(!@g_mirrors) {
+    if(!@g_mirrors)
+    {
         $info->text('You must select at least one mirror');
         return;
     }    
@@ -550,19 +539,19 @@ sub SP_focus
 {       
     my $win = shift;
     my $info = $win->getobj('info');
-    my $bootloaderlist = $win->getobj('bootloaderlist');
-    my $devicelist = $win->getobj('devicelist');        
+    my ($bootloaderlist, $devicelist) = ($win->getobj('bootloaderlist'), $win->getobj('devicelist'));    
 
     my (@sd_disks, @hd_disks, @disks);
     @sd_disks = glob("/sys/block/sd*");
     @hd_disks = glob("/sys/block/hd*");
-    foreach (@sd_disks, @hd_disks) {        
+    foreach (@sd_disks, @hd_disks)
+    {        
         s/^\/sys\/block\//\/dev\//;
         push @disks, $_;
     }    
-        
-    $devicelist->values(sort @disks);    
-    $bootloaderlist->values(['grub']);
+    
+    $bootloaderlist->values(['grub']);    
+    $devicelist->values(sort @disks);        
 }
 
 sub SP_nav_continue
@@ -572,16 +561,17 @@ sub SP_nav_continue
     my $bbox = shift;
     my $win = $bbox->parent;
     my $info = $win->getobj('info');
-    my $bootloaderlist = $win->getobj('bootloaderlist');
-    my $devicelist = $win->getobj('devicelist');        
-    my $wirelesstoolscb = $win->getobj('wirelesstoolscb');
+    my ($bootloaderlist, $devicelist, $wirelesstoolscb) = (
+        $win->getobj('bootloaderlist'), $win->getobj('devicelist'), $win->getobj('wirelesstoolscb'));    
     
     $g_bootloader = $bootloaderlist->get();
     $g_boot_disk = $devicelist->get();
     $g_wirelesstools = $wirelesstoolscb->get();    
     
-    if(defined $g_bootloader) {
-        unless(defined $g_boot_disk) {
+    if(defined $g_bootloader)
+    {
+        unless(defined $g_boot_disk)
+        {
             $info->text("You must select a boot device for $g_bootloader");
             return;
         }
