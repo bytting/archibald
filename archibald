@@ -62,4 +62,4 @@ echo "Installing prerequisites, please wait..."
 install_package perl-curses 1
 install_package perl-curses-ui 1
 
-exec ./archibald.pl
+exec ./main.pl

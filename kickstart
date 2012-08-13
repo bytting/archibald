@@ -25,4 +25,4 @@ wget -nv -O archibald.tar.gz https://github.com/corebob/archibald/tarball/master
 tar -xvzf ./archibald.tar.gz
 cd corebob-archibald-*
 
-exec ./setup
+exec ./archibald
