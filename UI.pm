@@ -86,7 +86,7 @@ sub run()
 
     $win{'SPS'}->add('info', 'Label', %info_args);        
     
-    $win{'SPS'}->add('schemelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 6, -vscrollbar => 'right', -border => 1, -title => 'Partitionong schemes',
+    $win{'SPS'}->add('schemelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 12, -vscrollbar => 'right', -border => 1, -title => 'Partitionong schemes',
         -values => ['guided', 'cgdisk'],
         -labels => { guided => 'Guided partitioning (Use entire disk)', cgdisk => 'Manual partitioning with cgdisk (gpt)' } );    
     
