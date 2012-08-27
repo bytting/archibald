@@ -188,10 +188,10 @@ sub GP_focus
         open FILE, "<$disk/size";
         my $contents = do { local $/; <FILE> };
         close FILE;
-        if($contents <= 0) { next }
+        next if($contents <= 0); 
         $disk =~ s/\/sys\/block\///;
         my @out = `gdisk /dev/$disk -l`;
-        if(!@out) { next };
+        next unless @out;
         my @dinfo = grep { $_ =~ /^First usable sector is/ } @out;            
         my @secsizes = $dinfo[0] =~ /(\d+)/g;        
         my $seccnt = $secsizes[1] - $secsizes[0];        
@@ -256,7 +256,7 @@ sub SD_focus
         open FILE, "<$_/size";
         my $contents = do { local $/; <FILE> };
         close FILE;
-        if($contents <= 0) { next }
+        next if($contents <= 0);
         s/^\/sys\/block\///;
         push @disks, $_;                    
     }    
@@ -692,9 +692,7 @@ sub CNET_focus
         if ( /^\d+:\s*(\w+).*state\s(\w+)/ )
         {        
             my ($if, $state) = ($1, $2);
-            if($if eq 'lo') {
-                next;
-            }
+            next if($if eq 'lo'); 
             push @values, "$if ($state)";            
         }
     }
