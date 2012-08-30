@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #=======================================================================
-# Arch_UI.pm - UI for archibald.pl
+# Arch_UI.pl - UI for archibald
 # Copyright (C) 2012  Dag Robøle
 # 
 # This program is free software; you can redistribute it and/or
@@ -18,14 +18,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #=======================================================================
 
-package UI;
-
 use strict;
 use warnings;
 use Curses::UI;
-require Callbacks;
 
-use vars qw(%win);
+require "./Callbacks.pl";
 
 my $cui;
 my %win_args = (-border => 1, -titlereverse => 0, -pad => 1, -ipad => 1, -bfg => 'red', -tfg => 'green');
@@ -39,6 +36,8 @@ sub handler_quit()
 
 sub run()
 {    
+	use vars qw(%win %p);
+	
     $cui = Curses::UI->new(-color_support => 1,-clear_on_exit => 1);    
 
     #=======================================================================
@@ -86,9 +85,7 @@ sub run()
 
     $win{'SPS'}->add('info', 'Label', %info_args);        
     
-    $win{'SPS'}->add('schemelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 12, -vscrollbar => 'right', -border => 1, -title => 'Partitionong schemes',
-        -values => ['guided', 'cgdisk'],
-        -labels => { guided => 'Guided partitioning (Use entire disk)', cgdisk => 'Manual partitioning with cgdisk (gpt)' } );    
+    $win{'SPS'}->add('schemelist', 'Radiobuttonbox', -x => 0, -y => 2, -width => -1, -height => 12, -vscrollbar => 'right', -border => 1, -title => 'Partitionong schemes');
     
     $win{'SPS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [
@@ -223,7 +220,7 @@ sub run()
     $win{'CS'}->add('localelist_lang', 'Radiobuttonbox', -x => 0, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'LANG *');
     $win{'CS'}->add('localelist_time', 'Radiobuttonbox', -x => 35, -y => 9, -width => 35, -height => 6, -border => 1, -title => 'LC_TIME');
     
-    $win{'CS'}->add('localetimecb', 'Checkbox', -x => 35, -y => 15, -label => 'Use localtime');        
+    $win{'CS'}->add('localtimecb', 'Checkbox', -x => 35, -y => 15, -label => 'Use localtime');        
     
     $win{'CS'}->add('nav', 'Buttonbox', -y => -1,
         -buttons => [

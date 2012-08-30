@@ -1,6 +1,6 @@
 #!/bin/bash
 #=======================================================================
-# setup - Setup for archibald.pl
+# archibald - Prepare environment and start the installer generator
 # Copyright (C) 2012  Dag Robøle
 # 
 # This program is free software; you can redistribute it and/or

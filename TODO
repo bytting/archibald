@@ -1,11 +1,7 @@
 Comment the code
-Make resources (environment) and installer generator into separate modules
 Add traps to installer script
-Support disks other than sd* and hd* (?)
-Make syslinux work with gpt (?)
+Make syslinux work(?)
 Support for more filesystem types
-UEFI support
-Add an option to install Arch directly from a pre-made installer script (eg. setup --url=myserver.com/arch-installer --ip=192.168.1.2)
+Add an option to install Arch directly from a pre-made installer script (eg. setup --url=myserver.com/arch-installer --ip=192.168.1.2 ...)
 Make wireless and mobile broadband work
 Load wireless firmware
-Support signed packages (?)

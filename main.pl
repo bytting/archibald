@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #=======================================================================
-# archibald.pl - Bootstrap installer for Arch linux
+# main.pl - Main entry point for installer generator
 # Copyright (C) 2012  Dag Robøle
 # 
 # This program is free software; you can redistribute it and/or
@@ -22,7 +22,7 @@ use strict;
 use warnings;
 use 5.010;
 use IO::Handle;
-use UI;
+require "./UI.pl";
 
 use strict 'subs';
 
@@ -32,6 +32,6 @@ die "This script must be run as root" if $login ne 'root';
 open STDERR, ">stderr.log" or die $!;
 STDERR->autoflush(1);
 
-UI::run();
+run();
 
 #=======================================================================
