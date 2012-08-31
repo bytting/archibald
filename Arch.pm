@@ -280,8 +280,8 @@ sub load_devices
 		my @items = split;
 		given($items[2])
 		{
-			when('disk') { $disks{$items[0]}{size} = int($items[1]); }
-			when('part') { $partitions{$items[0]}{size} = int($items[1]); }
+			when('disk') { $disks{'/dev/'.$items[0]}{size} = int($items[1]); }
+			when('part') { $partitions{'/dev/'.$items[0]}{size} = int($items[1]); }
 		}
 	}
 }
@@ -313,8 +313,8 @@ sub get_disk_size
 
 sub get_disk_model
 {
-	my $disk = shift;
-	return `lsblk -n -d -o MODEL /dev/$disk`;
+	my $dsk = shift;
+	return `lsblk -n -d -o MODEL $dsk`;
 }
 
 #=======================================================================
@@ -374,18 +374,17 @@ sub add_partition_table_entry
 
 sub autogenerate_partition_table
 {
-    my $d = shift;
-	my $install_disk = '/dev/' . $d;
+    my $dsk = shift;
 
-    my $size = get_disk_size($d) / MEGA;
+    my $size = get_disk_size($dsk) / MEGA;
     return 1 if($size < 7250);
         
     my $rest = int($size) - 2 - 200 - 2048;
     my $partnr = 1;
-    my $bios = "$install_disk" . $partnr++ . ":bios:bios:2";
-    my $boot = "$install_disk" . $partnr++ . ":boot:ext2:200";    
-    my $swap = "$install_disk" . $partnr++ . ":swap:swap:2048";
-    my $root = "$install_disk" . $partnr++ . ":root:ext4:$rest";
+    my $bios = "$dsk" . $partnr++ . ":bios:bios:2";
+    my $boot = "$dsk" . $partnr++ . ":boot:ext2:200";    
+    my $swap = "$dsk" . $partnr++ . ":swap:swap:2048";
+    my $root = "$dsk" . $partnr++ . ":root:ext4:$rest";
     
     @partition_table = ($bios, $boot, $swap, $root);
 	return 0;
@@ -415,8 +414,8 @@ sub get_disk
 
 sub get_disk_info
 {
-	my $d = shift;
-    return join("", `lsblk -o NAME,SIZE,TYPE,ALIGNMENT,FSTYPE /dev/$d`);	
+	my $dsk = shift;
+    return join("", `lsblk -o NAME,SIZE,TYPE,ALIGNMENT,FSTYPE $dsk`);	
 }
 
 #=======================================================================
@@ -679,7 +678,7 @@ sub get_install_script
 
 sub generate_installer
 {
-	my $install_disk = "/dev/$disk";
+	my $install_disk = $disk;
 	
 	# make sure all required variables are set
     
@@ -1020,7 +1019,7 @@ sub generate_installer
         given($bootloader)
         {
             when('grub') {
-                emit_line($inst, "grub-install /dev/$bootloader_disk");
+                emit_line($inst, "grub-install $bootloader_disk");
                 emit_line($inst, "cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo");
                 emit_line($inst, "grub-mkconfig -o /boot/grub/grub.cfg");
             }
