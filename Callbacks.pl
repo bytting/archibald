@@ -531,7 +531,7 @@ sub CNET_focus {
     my $win    = shift;
     my $iflist = $win->getobj('interfacelist');
 
-    $iflist->values( get_network_interfaces() );
+    $iflist->values( get_network_devices() );
 }
 
 sub CNET_interfacelist_changed {
@@ -593,7 +593,7 @@ sub CNET_nav_continue {
 
     my $interface = $interfacelist->get();
     if ( defined($interface) ) {
-        set_interface($interface);
+        set_network_device($interface);
 
         my $hostname = trim( $hostnameentry->get() );
         unless ( length $hostname ) {
@@ -676,4 +676,5 @@ You may quit and install Arch linux with the following command: ./"
 }
 
 #=======================================================================
-1;
+1
+__END__

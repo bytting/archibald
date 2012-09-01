@@ -54,8 +54,8 @@ our @EXPORT = qw(
   set_locale_lang
   set_locale_time
   use_localtime
-  get_network_interfaces
-  set_interface
+  get_network_devices
+  set_network_device
   set_hostname
   set_ip
   set_domain
@@ -90,7 +90,8 @@ my (
     $interface,          $static_ip,         $ip,
     $domain,             $netmask,           $gateway,
     %disks,              %partitions,        $disk,
-    @mountpoints,        $install_script,    $use_partitioning
+    @mountpoints,        $install_script,    $use_partitioning,
+	%net_devices
 );
 
 # Default values
@@ -238,7 +239,7 @@ sub set_fontmap {
 }
 
 #=======================================================================
-# load_devices: Load all block devices on system
+# load_devices: Load all disks and partitions on system
 #=======================================================================
 
 sub load_devices {
@@ -524,27 +525,59 @@ sub use_localtime {
 }
 
 #=======================================================================
-# get_network_interfaces: return all network interfaces found on system
+# load_network_devices: load all network devices
+#=======================================================================
+
+sub load_network_devices {
+	for(`ip link`) {
+		if(/^\d+:\s*(\w+):.*state\s+(\w+)/) {
+			next if ($1 eq 'lo');
+			$net_devices{$1}{state} = $2;
+			$net_devices{$1}{has_interface} = 0;
+		}
+	}
+	
+	for my $dev (keys %net_devices) {
+		my $info = `iwconfig $dev 2>&1`;
+		if($info =~ /.+no wireless extensions.+/) {
+			$net_devices{$dev}{type} = 'wired';
+		}
+		else {
+			$net_devices{$dev}{type} = 'wireless';
+		}
+	}
+	
+	for(`ip addr`) {
+		if(/^\d+:\s*(\w+):/) {
+			next if ($1 eq 'lo');
+			$net_devices{$1}{has_interface} = 1;
+		}		
+	}
+}
+
+#=======================================================================
+# get_network_devices: return all network devices found on system
+#=======================================================================
+
+sub get_network_devices {
+	load_network_devices();
+    return keys %net_devices;
+}
+
+#=======================================================================
+# get_network_interfaces: return all network interfaces
 #=======================================================================
 
 sub get_network_interfaces {
-    my @interfaces;
-
-    for (`ip addr`) {
-        if (/^\d+:\s*(\w+).*state\s(\w+)/) {
-            my ( $if, $state ) = ( $1, $2 );
-            next if ( $if eq 'lo' );
-            push @interfaces, $if;
-        }
-    }
-    return @interfaces;
+	load_network_devices();
+	return grep { $net_devices{$_}{has_interface} } keys %net_devices;
 }
 
 #=======================================================================
 # set_interface: Save configuration network interface
 #=======================================================================
 
-sub set_interface {
+sub set_network_device {
     $interface = shift;
 }
 
@@ -796,11 +829,13 @@ sub generate_installer {
 
     emit( $inst, "\n" );
 
+	my ( $in, $out );
+	
     #setup mirrorlist
 
     if (@mirrors) {
-        open( my $in,  "<", $mirrorlist );
-        open( my $out, ">", "./mirrorlist" );
+        open( $in,  "<", $mirrorlist );
+        open( $out, ">", "./mirrorlist" );
 
         my $found;
         while ( my $line = <$in> ) {
@@ -836,9 +871,7 @@ sub generate_installer {
         close MIRRORFILE;
         emit_line( $inst, "EOF" );
         unlink('./mirrorlist');
-    }
-
-    my ( $in, $out );
+    }    
 
     # setup locale
 
@@ -997,4 +1030,5 @@ sub generate_installer {
 
     return ( 0, 'Installation script generated successfully' );
 }
-1;
+1
+__END__
