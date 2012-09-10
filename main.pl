@@ -32,6 +32,15 @@ die "This script must be run as root" if $login ne 'root';
 open STDERR, ">stderr.log" or die $!;
 STDERR->autoflush(1);
 
+use vars qw($run_installer);
+
 run();
+
+if($run_installer) {
+	exit(1);
+}
+else {
+	exit(0);
+}
 
 #=======================================================================

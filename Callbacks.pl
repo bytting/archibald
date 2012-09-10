@@ -25,6 +25,7 @@ use feature qw(switch);
 use Arch;
 
 our %win = ();
+our $run_installer = 0;
 
 our %partitioning_schemes = (
     guided => 'Guided partitioning (Use entire disk)',
@@ -652,7 +653,17 @@ sub IS_focus {
     my $win = shift;
     my $opt = $win->getobj('opt');
 
+	$run_installer = 1;
+
     $opt->focus;
+}
+
+sub IS_run_installer_change {
+    my $bbox = shift;
+	my $win = $bbox->parent;
+    my $runinst = $win->getobj('run_installer');
+
+	$run_installer = $runinst->get();
 }
 
 sub IS_nav_make_install {
