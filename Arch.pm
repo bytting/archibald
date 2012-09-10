@@ -91,7 +91,7 @@ my (
     $domain,             $netmask,           $gateway,
     %disks,              %partitions,        $disk,
     @mountpoints,        $install_script,    $use_partitioning,
-    %net_devices
+    %net_devices,		$last_partition
 );
 
 # Default values
@@ -331,23 +331,40 @@ sub add_partition_table_entry {
 }
 
 #=======================================================================
-# autogenerate_partition_table: generate a partition table for a speciffic disk
+# autogenerate_partition_table: generate a partition table for a specific disk
 #=======================================================================
 
 sub autogenerate_partition_table {
     my $dsk = shift;
 
+	my $use_home = 0;
     my $size = get_disk_size($dsk) / MEGA;
     return 1 if ( $size < 7250 );
 
-    my $rest   = int($size) - 2 - 200 - 2048;    
+	my ($rest, $root, $home);
+	if( $size > 37250 ) {
+		$use_home = 1;
+    	$rest   = int($size) - 2 - 200 - 2048 - 20000;    
+		$last_partition = 'home';
+	}
+	else {
+    	$rest   = int($size) - 2 - 200 - 2048;    
+		$last_partition = 'root';
+	}
     my $partnr = 1;
     my $bios   = "$dsk" . $partnr++ . ":bios:bios:2";
     my $boot   = "$dsk" . $partnr++ . ":boot:ext2:200";
     my $swap   = "$dsk" . $partnr++ . ":swap:swap:2048";
-    my $root   = "$dsk" . $partnr++ . ":root:ext4:$rest";
+	if( $use_home ) {
+    	$root = "$dsk" . $partnr++ . ":root:ext4:20000";
+		$home = "$dsk" . $partnr++ . ":home:ext4:$rest";
+    	@partition_table = ( $bios, $boot, $swap, $root, $home );
+	}
+    else {
+		$root = "$dsk" . $partnr++ . ":root:ext4:$rest";
+    	@partition_table = ( $bios, $boot, $swap, $root );
+	}
 
-    @partition_table = ( $bios, $boot, $swap, $root );
     return 0;
 }
 
@@ -666,13 +683,13 @@ sub generate_installer {
         foreach (@partition_table) {
             my ( $partition, $mountpoint, $filesystem, $size ) = split /:/;
             if ( defined($last_mountpoint) ) {
-		if ( $mountpoint eq 'root' ) {
-		    emit_line( $inst, "parted $install_disk \"unit MiB mkpart primary \$$last_mountpoint -1\"");
-		}
-		else {
-		    emit_line( $inst, "$mountpoint=\$((\$$last_mountpoint + $size))" );
-		    emit_line( $inst, "parted $install_disk unit MiB mkpart primary \$$last_mountpoint \$$mountpoint");
-		}                
+				if ( $mountpoint eq $last_partition ) {
+		    		emit_line( $inst, "parted $install_disk \"unit MiB mkpart primary \$$last_mountpoint -1\"");
+				}
+				else {
+		    		emit_line( $inst, "$mountpoint=\$((\$$last_mountpoint + $size))" );
+		    		emit_line( $inst, "parted $install_disk unit MiB mkpart primary \$$last_mountpoint \$$mountpoint");
+				}                
             }
             else {
                 emit_line( $inst, "$mountpoint=\$((1 + $size))" );
@@ -681,6 +698,26 @@ sub generate_installer {
                 );
             }
             $last_mountpoint = $mountpoint;
+
+        	$partition =~ /.+(\d)$/;
+        	my $partition_number = $1;
+			given($mountpoint) {
+				when('bios') {
+					emit_line( $inst, "parted name $partition_number bios");
+				}
+				when('boot') {
+					emit_line( $inst, "parted name $partition_number arch-boot");
+				}
+				when('swap') {
+					emit_line( $inst, "parted name $partition_number linux-swap");
+				}
+				when('root') {
+					emit_line( $inst, "parted name $partition_number arch-root");
+				}
+				when('home') {
+					emit_line( $inst, "parted name $partition_number arch-home");
+				}
+			}
         }
     }
 
