@@ -25,7 +25,6 @@ use feature qw(switch);
 use Arch;
 
 our %win = ();
-our $run_installer = 0;
 
 our %partitioning_schemes = (
     guided => 'Guided partitioning (Use entire disk)',
@@ -651,19 +650,9 @@ sub CNET_nav_continue {
 
 sub IS_focus {
     my $win = shift;
-    my $opt = $win->getobj('opt');
-
-	$run_installer = 1;
-
-    $opt->focus;
-}
-
-sub IS_run_installer_change {
-    my $bbox = shift;
-	my $win = $bbox->parent;
     my $runinst = $win->getobj('run_installer');
 
-	$run_installer = $runinst->get();
+    $runinst->focus;
 }
 
 sub IS_nav_make_install {
@@ -684,6 +673,21 @@ You may quit and install Arch linux with the following command: ./"
               . get_install_script()
         );
     }
+}
+
+sub IS_quit {
+    my $bbox = shift;
+	my $win = $bbox->parent;
+    my $cui  = $win->parent;
+    my $runinst = $win->getobj('run_installer');
+	
+    $cui->mainloopExit();
+    
+    if($runinst->get()) {
+        my $install_script = get_install_script();
+        `$install_script`;        
+    }    
+    exit(0);
 }
 
 #=======================================================================

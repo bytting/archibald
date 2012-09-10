@@ -63,7 +63,3 @@ install_package perl-curses 1
 install_package perl-curses-ui 1
 
 exec ./main.pl
-if [ "$?" -ne "0" ] && [ -e ./arch-installer ]
-then
-	exec ./arch-installer
-fi

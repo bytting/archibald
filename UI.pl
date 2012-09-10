@@ -701,7 +701,7 @@ sub run() {
         -vscrollbar => 'right'
     );
 
-	$win{'IS'}->add('run_installer', 'Checkbox', -x => 0, -y => -4, -label => 'Run installer when quitting', -checked => 1, -onchange => \&IS_run_installer_change);
+	$win{'IS'}->add('run_installer', 'Checkbox', -x => 0, -y => -4, -label => 'Run installer when quitting', -checked => 1);
 
     $win{'IS'}->add(
         'opt',
@@ -729,7 +729,7 @@ sub run() {
             {
                 -label   => '<Quit>',
                 -value   => 'continue',
-                -onpress => \&handler_quit
+                -onpress => \&IS_quit
             }
 
         ]
