@@ -681,14 +681,13 @@ sub IS_quit {
     my $cui  = $win->parent;
     my $runinst = $win->getobj('run_installer');
 	
-    $cui->leave_curses();    
+    $cui->leave_curses();
+    $cui->mainloopExit();
     
     if($runinst->get()) {
         my $install_script = get_install_script();
-        system( "clear && ./$install_script" );        
-    }
-    
-    $cui->mainloopExit();
+        system( "clear && ./$install_script 2>&1" );        
+    }    
     
     exit(0);
 }
