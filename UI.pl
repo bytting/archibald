@@ -694,7 +694,7 @@ sub run() {
         -x          => 0,
         -y          => 0,
         -width      => -1,
-        -height     => 14,
+        -height     => 10,
         -bold       => 1,
         -singleline => 0,
         -wrapping   => 1,
