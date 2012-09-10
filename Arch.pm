@@ -667,7 +667,7 @@ sub generate_installer {
             my ( $partition, $mountpoint, $filesystem, $size ) = split /:/;
             if ( defined($last_mountpoint) ) {
 		if ( $mountpoint eq 'root' ) {
-		    emit_line( $inst, "parted $install_disk unit MiB mkpart primary \$$last_mountpoint -1");
+		    emit_line( $inst, "parted $install_disk \"unit MiB mkpart primary \$$last_mountpoint -1\"");
 		}
 		else {
 		    emit_line( $inst, "$mountpoint=\$((\$$last_mountpoint + $size))" );
