@@ -703,19 +703,19 @@ sub generate_installer {
         	my $partition_number = $1;
 			given($mountpoint) {
 				when('bios') {
-					emit_line( $inst, "parted name $partition_number bios");
+					emit_line( $inst, "parted $install_disk name $partition_number bios");
 				}
 				when('boot') {
-					emit_line( $inst, "parted name $partition_number arch-boot");
+					emit_line( $inst, "parted $install_disk name $partition_number arch-boot");
 				}
 				when('swap') {
-					emit_line( $inst, "parted name $partition_number linux-swap");
+					emit_line( $inst, "parted $install_disk name $partition_number linux-swap");
 				}
 				when('root') {
-					emit_line( $inst, "parted name $partition_number arch-root");
+					emit_line( $inst, "parted $install_disk name $partition_number arch-root");
 				}
 				when('home') {
-					emit_line( $inst, "parted name $partition_number arch-home");
+					emit_line( $inst, "parted $install_disk name $partition_number arch-home");
 				}
 			}
         }
