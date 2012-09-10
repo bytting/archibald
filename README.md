@@ -4,7 +4,7 @@ Archibald - A community developed installer for Arch linux
 
 ====================================================
 
-This software is still in alfa state.
+This software is still pre-alfa state.
 
 For testing purposes, issue the following commands on a fresh archlinux installation image:
 <pre>

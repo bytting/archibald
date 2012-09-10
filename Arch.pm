@@ -91,7 +91,7 @@ my (
     $domain,             $netmask,           $gateway,
     %disks,              %partitions,        $disk,
     @mountpoints,        $install_script,    $use_partitioning,
-	%net_devices
+    %net_devices
 );
 
 # Default values
@@ -340,7 +340,7 @@ sub autogenerate_partition_table {
     my $size = get_disk_size($dsk) / MEGA;
     return 1 if ( $size < 7250 );
 
-    my $rest   = int($size) - 2 - 200 - 2048;
+    my $rest   = int($size) - 2 - 200 - 2048;    
     my $partnr = 1;
     my $bios   = "$dsk" . $partnr++ . ":bios:bios:2";
     my $boot   = "$dsk" . $partnr++ . ":boot:ext2:200";
@@ -666,11 +666,13 @@ sub generate_installer {
         foreach (@partition_table) {
             my ( $partition, $mountpoint, $filesystem, $size ) = split /:/;
             if ( defined($last_mountpoint) ) {
-                emit_line( $inst,
-                    "$mountpoint=\$((\$$last_mountpoint + $size))" );
-                emit_line( $inst,
-"parted $install_disk unit MiB mkpart primary \$$last_mountpoint \$$mountpoint"
-                );
+		if ( $mountpoint eq 'root' ) {
+		    emit_line( $inst, "parted $install_disk unit MiB mkpart primary \$$last_mountpoint -1");
+		}
+		else {
+		    emit_line( $inst, "$mountpoint=\$((\$$last_mountpoint + $size))" );
+		    emit_line( $inst, "parted $install_disk unit MiB mkpart primary \$$last_mountpoint \$$mountpoint");
+		}                
             }
             else {
                 emit_line( $inst, "$mountpoint=\$((1 + $size))" );
