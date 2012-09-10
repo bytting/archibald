@@ -685,7 +685,7 @@ sub IS_quit {
     
     if($runinst->get()) {
         my $install_script = get_install_script();
-        `$install_script`;        
+        `./$install_script`;        
     }    
     exit(0);
 }
