@@ -289,10 +289,10 @@ sub get_disk_model {
 #=======================================================================
 
 sub get_partitions {
-    my $disk = shift;
+    my $dsk = shift;
     load_devices();
-    return sort keys %partitions unless defined($disk);
-    return sort grep( /^$disk/, keys %partitions );
+    #return sort keys %partitions unless defined($disk);
+    return sort grep( /^$dsk/, keys %partitions );
 }
 
 #=======================================================================

@@ -701,7 +701,7 @@ sub run() {
         -vscrollbar => 'right'
     );
 
-	$win{'IS'}->add('run_installer', 'Checkbox', -x => 0, -y => -4, -label => 'Run installer when quitting', -checked => 1);
+	$win{'IS'}->add('run_installer', 'Checkbox', -x => 0, -y => 11, -label => 'Run installer when quitting', -checked => 1);
 
     $win{'IS'}->add(
         'opt',
