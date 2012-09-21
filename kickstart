@@ -21,8 +21,7 @@ set -e
  
 echo "Downloading and extracing archibald, please wait..."
 
-wget -nv -O archibald.tar.gz https://github.com/corebob/archibald/tarball/master
-tar -xvzf ./archibald.tar.gz
+curl -L https://github.com/corebob/archibald/tarball/master | tar zx
 cd corebob-archibald-*
 
 exec ./archibald
