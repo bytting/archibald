@@ -701,20 +701,7 @@ sub run() {
         -vscrollbar => 'right'
     );
 
-	$win{'IS'}->add('run_installer', 'Checkbox', -x => 0, -y => 11, -label => 'Run installer when quitting', -checked => 1);
-
-    $win{'IS'}->add(
-        'opt',
-        'Buttonbox',
-        -y       => -2,
-        -buttons => [
-            {
-                -label   => '<Generate installation script>',
-                -value   => 'gis',
-                -onpress => \&IS_nav_make_install
-            }
-        ]
-    );
+	$win{'IS'}->add('run_installer', 'Checkbox', -x => 0, -y => 11, -label => 'Run installer when quitting', -checked => 1);    
 
     $win{'IS'}->add(
         'nav',
@@ -722,16 +709,10 @@ sub run() {
         -y       => -1,
         -buttons => [
             {
-                -label   => '<Back>',
-                -value   => 'back',
-                -onpress => sub { $win{'CNET'}->focus }
-            },
-            {
-                -label   => '<Quit>',
-                -value   => 'continue',
-                -onpress => \&IS_quit
+                -label   => '<Generate installation script and exit>',
+                -value   => 'generate',
+                -onpress => \&IS_nav_make_install
             }
-
         ]
     );
 

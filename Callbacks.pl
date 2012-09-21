@@ -658,36 +658,35 @@ sub IS_focus {
 sub IS_nav_make_install {
     my $bbox   = shift;
     my $win    = $bbox->parent;
+    my $cui  = $win->parent;
     my $viewer = $win->getobj('viewer');
+    my $runinst = $win->getobj('run_installer');
 
     my ( $err, $msg ) = generate_installer();
     if ($err) {
         print STDERR $msg;
         $viewer->text($msg);
+        return;
     }
     else {
         $viewer->text(
             "Congratulations!
 A installer script has been saved as " . get_install_script() . "
-You may quit and install Arch linux with the following command: ./"
+You can now install Archlinux with the following command: ./"
               . get_install_script()
         );
+        $viewer->draw();
     }
-}
-
-sub IS_quit {
-    my $bbox = shift;
-	my $win = $bbox->parent;
-    my $cui  = $win->parent;
-    my $runinst = $win->getobj('run_installer');
-	
-    $cui->leave_curses();
-    $cui->mainloopExit();
     
     if($runinst->get()) {
+        $cui->leave_curses();
+        $cui->mainloopExit();
         my $install_script = get_install_script();
         system( "clear && ./$install_script 2>&1" );        
-    }    
+    }
+    else {
+        sleep(5);
+    }
     
     exit(0);
 }
