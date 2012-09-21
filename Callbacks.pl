@@ -672,8 +672,7 @@ sub IS_nav_make_install {
         $viewer->text(
             "Congratulations!
 A installer script has been saved as " . get_install_script() . "
-You can now install Archlinux with the following command: ./"
-              . get_install_script()
+You can now install Archlinux by running this script. Exiting..."
         );
         $viewer->draw();
     }
