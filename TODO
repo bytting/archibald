@@ -1,7 +1,3 @@
-Comment the code
-Add traps to installer script
-Make syslinux work(?)
 Support for more filesystem types
-Add an option to install Arch directly from a pre-made installer script (eg. setup --url=myserver.com/arch-installer --ip=192.168.1.2 ...)
 Make wireless and mobile broadband work
 Load wireless firmware
