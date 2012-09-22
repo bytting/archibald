@@ -1,4 +1,5 @@
+Configure hostname even if networking is not configured
 Support for more filesystem types
-Use netcfg
+Use netcfg to configure networking
 Make wireless and mobile broadband work
 Load wireless firmware
